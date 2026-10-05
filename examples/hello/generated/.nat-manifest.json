@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "input_hash": "8a7f0ef3cb73186764c306d6bdf5455b0a9fd738f90d44052578c08c1942b888",
+  "generated": {
+    "ir.json": "7e85df2e1af005ac2c938b4b9485a4433eb10d2c5ff1d04ffcc1cae5304f11bd",
+    "main.py": "8e2de22ce48075098df130e89a90b51222f945c701344989038a8026d3a8a908",
+    "test.py": "5d1e5249b30f295b53e9f72754dc523edb287d949e4fc13f2501202a48cae0b6"
+  },
+  "inferred": {
+    "assumptions.inat": "94c3f0649db4b7491a3165383bba7a83fc25e3f9705196ba507ffff7522021d6"
+  },
+  "run": [
+    "python3",
+    "main.py"
+  ],
+  "checks": [
+    [
+      "python3",
+      "test.py"
+    ]
+  ],
+  "summary": "A small command-line greeter"
+}

@@ -1,0 +1,52 @@
+{
+  "type": "object",
+  "properties": {
+    "summary": { "type": "string" },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "source": { "type": "string" },
+          "statement": { "type": "string" }
+        },
+        "required": ["id", "source", "statement"],
+        "additionalProperties": false
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "source": { "type": "string" },
+          "statement": { "type": "string" },
+          "reason": { "type": "string" }
+        },
+        "required": ["id", "source", "statement", "reason"],
+        "additionalProperties": false
+      }
+    },
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string" },
+          "content": { "type": "string" }
+        },
+        "required": ["path", "content"],
+        "additionalProperties": false
+      }
+    },
+    "run": { "type": "array", "items": { "type": "string" } },
+    "checks": {
+      "type": "array",
+      "items": { "type": "array", "items": { "type": "string" } }
+    }
+  },
+  "required": ["summary", "requirements", "assumptions", "files", "run", "checks"],
+  "additionalProperties": false
+}

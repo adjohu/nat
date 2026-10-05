@@ -1,0 +1,4 @@
+# Generated assumptions. Promote one with `nat promote ID`.
+# Edit spec/*.nat to override an assumption.
+
+No inferred product behavior.

@@ -1,0 +1,28 @@
+{
+  "summary": "A small command-line greeter",
+  "requirements": [
+    {
+      "id": "R1",
+      "source": "hello.nat",
+      "statement": "The program greets a person by name."
+    },
+    {
+      "id": "R2",
+      "source": "hello.nat",
+      "statement": "With no name, the program greets the world."
+    }
+  ],
+  "assumptions": [],
+  "files": [
+    {
+      "path": "main.py",
+      "content": "import sys\n\nname = sys.argv[1] if len(sys.argv) > 1 else 'world'\nprint(f'Hello, {name}!')\n"
+    },
+    {
+      "path": "test.py",
+      "content": "import subprocess\nimport sys\nimport unittest\n\nclass GreeterTest(unittest.TestCase):\n    def test_default(self):\n        self.assertEqual(subprocess.check_output([sys.executable, 'main.py'], text=True), 'Hello, world!\\n')\n\n    def test_name(self):\n        self.assertEqual(subprocess.check_output([sys.executable, 'main.py', 'Ada'], text=True), 'Hello, Ada!\\n')\n\nif __name__ == '__main__':\n    unittest.main()\n"
+    }
+  ],
+  "run": ["python3", "main.py"],
+  "checks": [["python3", "test.py"]]
+}

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "summary": "A small command-line greeter",
+  "requirements": [
+    {
+      "id": "R1",
+      "source": "hello.nat",
+      "statement": "The program greets a person by name."
+    },
+    {
+      "id": "R2",
+      "source": "hello.nat",
+      "statement": "With no name, the program greets the world."
+    }
+  ],
+  "assumptions": []
+}
