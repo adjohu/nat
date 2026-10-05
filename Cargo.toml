@@ -3,6 +3,9 @@ name = "nat-runner"
 version = "0.1.0"
 edition = "2021"
 description = "A small runner for natural-language source projects"
+authors = ["Adam Hutchinson"]
+license = "Apache-2.0"
+repository = "https://github.com/adjohu/nat"
 
 [[bin]]
 name = "nat"
