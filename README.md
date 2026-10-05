@@ -72,7 +72,7 @@ Expect everything to change.
 ```text
 Commands:
   nat init [DIR]
-  nat build [--project DIR] [--proposal JSON]
+  nat build [--project DIR] [--proposal JSON] [--full]
   nat watch [--project DIR] [--no-test] [--proposal JSON]
   nat run [--project DIR] [ARGS...]
   nat test [--project DIR]
@@ -82,6 +82,8 @@ Commands:
 ```
 
 Arguments after `nat run` are passed to the generated program. For the starter greeting, a name changes whom it greets.
+
+`nat build` skips unchanged specs. For edits, `nat` uses compiler-reported dependencies to update affected outputs. New or removed specs and edits affecting every output get a full rebuild; the compiler can request one when the scope is uncertain. Because dependencies are inferred, use `nat build --full` whenever you want whole-project regeneration.
 
 ## Writing
 

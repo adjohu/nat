@@ -1,6 +1,8 @@
 {
   "type": "object",
   "properties": {
+    "full_rebuild_required": { "type": "boolean" },
+    "reason": { "type": "string" },
     "summary": { "type": "string" },
     "requirements": {
       "type": "array",
@@ -42,12 +44,13 @@
         "additionalProperties": false
       }
     },
+    "remove_files": { "type": "array", "items": { "type": "string" } },
     "run": { "type": "array", "items": { "type": "string" } },
     "checks": {
       "type": "array",
       "items": { "type": "array", "items": { "type": "string" } }
     }
   },
-  "required": ["summary", "requirements", "assumptions", "files", "run", "checks"],
+  "required": ["full_rebuild_required", "reason", "summary", "requirements", "assumptions", "files", "remove_files", "run", "checks"],
   "additionalProperties": false
 }
