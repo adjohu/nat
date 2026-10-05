@@ -18,6 +18,20 @@ if user is talking {
 
 Could compile to TypeScript today, Rust tomorrow, or something else entirely.
 
+## Quick start
+
+Install [Rust and Cargo](https://www.rust-lang.org/tools/install) and the [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), then:
+
+```sh
+cargo install --git https://github.com/adjohu/nat --locked
+codex login
+nat init hello
+cd hello
+nat run Ada
+```
+
+`nat init` creates a starter greeting spec in `spec/app.nat`; `nat run Ada` builds and runs it. Edit that file to change the program, then run `nat run` again. `nat watch` rebuilds and checks it as you edit.
+
 ## The idea
 
 There are three layers:
@@ -52,6 +66,20 @@ Rather than preserving generated implementation forever, regenerate it from the 
 Very early experiment.
 
 Expect everything to change.
+
+## CLI
+
+```text
+Commands:
+  nat init [DIR]
+  nat build [--project DIR] [--proposal JSON]
+  nat watch [--project DIR] [--no-test] [--proposal JSON]
+  nat run [--project DIR] [ARGS...]
+  nat test [--project DIR]
+  nat status [--project DIR]
+  nat check [--project DIR]
+  nat promote ID [--project DIR]
+```
 
 ## Writing
 
