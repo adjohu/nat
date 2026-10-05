@@ -27,10 +27,10 @@ cargo install --git https://github.com/adjohu/nat --locked
 codex login
 nat init hello
 cd hello
-nat run Ada
+nat run
 ```
 
-`nat init` creates a starter greeting spec in `spec/app.nat`; `nat run Ada` builds and runs it. Edit that file to change the program, then run `nat run` again. `nat watch` rebuilds and checks it as you edit.
+`nat init` creates a starter greeting spec in `spec/app.nat`. `nat run` builds and runs it; with no name given, the generated program greets the world. Edit the spec to change the program, then run `nat run` again. `nat watch` rebuilds and checks it as you edit.
 
 ## The idea
 
@@ -80,6 +80,8 @@ Commands:
   nat check [--project DIR]
   nat promote ID [--project DIR]
 ```
+
+Arguments after `nat run` are passed to the generated program. For the starter greeting, a name changes whom it greets.
 
 ## Writing
 
