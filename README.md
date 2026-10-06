@@ -6,14 +6,14 @@ What if humans stopped maintaining conventional source code?
 
 `nat` is an experiment in treating human-written intent as the canonical source, using an LLM to compile it into conventional software.
 
-```nat
-if user is talking {
-  wait until they finish, then {
-    store what they said
-    transcribe it
-    summarize themes and store deduped in db
-  }
-}
+```markdown
+# Conversation memory
+
+When the user is talking, wait until they finish, then:
+
+- Store what they said.
+- Transcribe it.
+- Summarize themes and store them in the database without duplicates.
 ```
 
 Could compile to TypeScript today, Rust tomorrow, or something else entirely.
@@ -85,7 +85,55 @@ Arguments after `nat run` are passed to the generated program. For the starter g
 
 `nat build` skips unchanged specs. For edits, `nat` uses compiler-reported dependencies to update affected outputs. New or removed specs and edits affecting every output get a full rebuild; the compiler can request one when the scope is uncertain. Because dependencies are inferred, use `nat build --full` whenever you want whole-project regeneration.
 
+Build progress appears on stderr, including the compilation scope and elapsed-time
+updates every 10 seconds while Codex is working. Compiler errors include diagnostic
+output if compilation fails.
+
 ## Writing
+
+`.nat` files are Markdown. Use headings, lists, code examples, links, and images
+to describe what you want. No front matter or special syntax is required, and
+existing plain-text specs still work.
+
+For example, `spec/viewer.nat` could contain:
+
+```markdown
+# Mind Viewer
+
+A local read-only viewer for Plural Matter Mind.
+
+Browsing must never mutate cognitive state.
+
+## Overview
+
+Use this existing viewer as a design reference:
+
+![Mind v2 viewer](./references/mind-v2.png)
+
+Preserve the information hierarchy and density, but do not copy its
+implementation architecture.
+
+## Requirements
+
+- Show recent experiences.
+- Show learned definitions and revisions.
+- Show pending and unresolved work.
+- Allow tracing a reply back to selected context and publications.
+```
+
+Put that image at `spec/references/mind-v2.png`. Relative links resolve from the
+`.nat` file that contains them. You can also link documents, such as
+`[Interaction notes](./references/interactions.md)`, or use Markdown reference-style
+links. The compiler receives the original Markdown and is instructed to inspect
+the referenced files and images as context for your requirements.
+
+Local references must point to existing files inside the project, outside
+`generated/` and `inferred/`. Their contents are tracked: editing a linked file
+makes its referring specs stale for `build`, `check`, `status`, and `watch`.
+Only files directly linked from `.nat` Markdown are tracked; links inside those
+files are not followed recursively. Remote URLs and raw HTML references remain
+in the spec but are not fetched or tracked by the runner. Keep reference assets
+locally when their changes should trigger a rebuild.
 
 More context: [What if code wasn't the source?](https://adjohu.com/blog/what-if-code-wasnt-the-source)
 

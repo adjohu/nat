@@ -56,11 +56,18 @@ fn watch_rebuilds_after_nat_edit() {
     let initial = wait_for_hash(&root, None).expect("watch should build at startup");
     fs::write(
         root.join("spec/hello.nat"),
-        "Greet the world and a friend.\n",
+        "# Greeting\n\nGreet the world and a friend.\n\n![Design](./design.png)\n",
     )
     .unwrap();
-    let updated = wait_for_hash(&root, Some(&initial));
+    fs::write(root.join("spec/design.png"), [0, 255, 1]).unwrap();
+    let updated =
+        wait_for_hash(&root, Some(&initial)).expect("watch should rebuild after a .nat edit");
+    fs::write(root.join("spec/design.png"), [0, 255, 2]).unwrap();
+    let image_updated = wait_for_hash(&root, Some(&updated));
     drop(watcher);
     fs::remove_dir_all(&root).unwrap();
-    assert!(updated.is_some(), "watch should rebuild after a .nat edit");
+    assert!(
+        image_updated.is_some(),
+        "watch should rebuild after an image edit"
+    );
 }

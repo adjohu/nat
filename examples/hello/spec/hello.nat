@@ -1,2 +1,7 @@
+# Greeting
+
 A command-line program greets a person by name.
-If no name is provided, it greets the world.
+
+## Requirements
+
+- If no name is provided, it greets the world.
