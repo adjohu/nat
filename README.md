@@ -137,6 +137,32 @@ files are not followed recursively. Remote URLs and raw HTML references remain
 in the spec but are not fetched or tracked by the runner. Keep reference assets
 locally when their changes should trigger a rebuild.
 
+## Building nat from nat
+
+This repository's [spec/](spec/) describes nat itself: the CLI, source format,
+compilation protocol, scoped rebuilds, execution, and self-hosting. The checked-in
+Rust code under `generated/` is a build artifact, and it is the `nat` binary Cargo
+installs. To rebuild it from the `.nat` source, use an authenticated Codex CLI:
+
+```sh
+cargo run -- build --project .
+```
+
+The generated runner rebuilds itself into `generated/` and updates
+`inferred/assumptions.inat`. Check the result with `cargo test` and
+`cargo test --manifest-path generated/Cargo.toml`. You can also run the generated
+crate directly:
+
+```sh
+cargo run --manifest-path generated/Cargo.toml -- build --project .
+```
+
+The earlier hand-written runner remains available as a bootstrap if needed:
+
+```sh
+cargo run --features bootstrap --bin nat-bootstrap -- build --project .
+```
+
 More context: [What if code wasn't the source?](https://adjohu.com/blog/what-if-code-wasnt-the-source)
 
 ## License

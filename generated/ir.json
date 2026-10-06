@@ -1,0 +1,262 @@
+{
+  "version": 1,
+  "summary": "Complete Rust nat candidate with full/scoped compilation, Markdown reference tracking, drift protection, explicit proposal validation, promotion, watching, and one-shot runtime dependency repair. Corrected overlapping mutable borrows in regression tests and narrowed generated-file dependencies. Includes offline compile, behavioral tests, and warnings-denied Clippy checks. Host toolchain, Codex flags, offline resolution of 25 dependency packages, and cached library entry points were verified read-only; generated software and checks were not executed.",
+  "requirements": [
+    {
+      "id": "CLI-001",
+      "source": "cli.nat",
+      "statement": "Provide a nat executable with init, build, watch, run, test, status, check, and promote commands and the documented command shapes and flags."
+    },
+    {
+      "id": "CLI-002",
+      "source": "cli.nat",
+      "statement": "Support help/--help/-h and version/--version/-V; reject invalid commands, options, missing values, and excess arguments with useful diagnostics and nonzero status."
+    },
+    {
+      "id": "CLI-003",
+      "source": "cli.nat",
+      "statement": "Except for init, discover projects by searching the current directory and ancestors for spec/, or require DIR/spec for explicit --project DIR; interpret relative flag paths from the caller's directory."
+    },
+    {
+      "id": "CLI-004",
+      "source": "cli.nat",
+      "statement": "init defaults to the current directory, creates spec/, inferred/, and generated/, preserves existing .nat sources, creates a greeting-by-name starter defaulting to the world only if no .nat files exist, and prints the project and next step."
+    },
+    {
+      "id": "CLI-005",
+      "source": "cli.nat",
+      "statement": "Under Commands, build validates and writes compilation results, skips the compiler only when inputs and tracked artifacts are current and no explicit proposal is given, always loads and validates an explicitly selected --proposal JSON even on a current build, and supports --full to force whole-project rebuilding."
+    },
+    {
+      "id": "CLI-006",
+      "source": "cli.nat",
+      "statement": "run builds as needed and executes the generated argv from generated/, forwarding remaining arguments literally and honoring -- as the end of nat option parsing."
+    },
+    {
+      "id": "CLI-007",
+      "source": "cli.nat",
+      "statement": "test builds as needed, executes every generated check from generated/, and fails when checks are absent or any check fails."
+    },
+    {
+      "id": "CLI-008",
+      "source": "cli.nat",
+      "statement": "status reports absent builds, stale inputs, edited or missing tracked artifacts, or current builds, including the previous summary and file counts; check succeeds only when all tracked sources, references, generated files, and inferred files match."
+    },
+    {
+      "id": "CLI-009",
+      "source": "cli.nat",
+      "statement": "watch performs a startup build/check, polls approximately every 150 ms, rebuilds approximately 400 ms after the last input change, runs checks unless --no-test is supplied, and continues after build or check errors."
+    },
+    {
+      "id": "CLI-010",
+      "source": "cli.nat",
+      "statement": "promote accepts an existing assumption only from a current build, appends its statement to spec/promoted.nat, removes the inferred assumption, and updates the manifest so check passes without silently overwriting other sources."
+    },
+    {
+      "id": "COMP-001",
+      "source": "compilation.nat",
+      "statement": "Invoke the installed authenticated Codex CLI from the project root with read-only workspace access and structured JSON output; pass an absolute temporary response path with -o and an absolute schema path with --output-schema. Only the Rust runner writes generated and inferred artifacts."
+    },
+    {
+      "id": "COMP-002",
+      "source": "compilation.nat",
+      "statement": "Surface Codex failures and diagnostic output while keeping successful normal transcripts and submitted spec text out of the terminal. Immediately report 'Compiling all N spec(s) with Codex' for full compilation or 'Compiling N changed spec(s) with Codex; M generated file(s) affected' for scoped compilation, followed by periodic 'Still compiling with Codex (Ns elapsed)' updates."
+    },
+    {
+      "id": "COMP-003",
+      "source": "compilation.nat",
+      "statement": "Full compilation receives every spec's original Markdown, direct local reference hashes, and previous inference and semantic records; require runtime availability inspection, explicit missing product assumptions, minimal runnable implementation, and meaningful checks without invented features."
+    },
+    {
+      "id": "COMP-004",
+      "source": "compilation.nat",
+      "statement": "Use structured summary, requirement, assumption, file, run, and check records; each file records full content and every direct or indirect .nat dependency, conservatively using all source paths when uncertain. Commands are argv arrays executed from generated/ without a shell; an empty run denotes a non-runnable project."
+    },
+    {
+      "id": "COMP-005",
+      "source": "compilation.nat",
+      "statement": "Constrain schema source fields to supplied exact source paths and independently validate saved proposals for nonempty valid unique semantic IDs, mapped requirements, existing sources, unique output paths, dependencies, and argv values."
+    },
+    {
+      "id": "COMP-006",
+      "source": "compilation.nat",
+      "statement": "Reject output paths escaping generated/, traversing symlinks, colliding with parent files, or using reserved ir.json and .nat-manifest.json paths; reject empty argv elements."
+    },
+    {
+      "id": "COMP-007",
+      "source": "compilation.nat",
+      "statement": "Validate the complete response and verify tracked generated and inferred artifacts before writing; refuse modified or missing tracked artifacts and overwriting untracked files."
+    },
+    {
+      "id": "COMP-008",
+      "source": "compilation.nat",
+      "statement": "Render generated/ir.json and reviewable inferred/assumptions.inat; every inferred item includes 'Source: spec/<exact source path>' and its full reason. Record hashes, commands, dependencies, and summary in generated/.nat-manifest.json, remove obsolete full-result outputs, and avoid rewriting identical bytes."
+    },
+    {
+      "id": "COMP-009",
+      "source": "compilation.nat",
+      "statement": "Under Full compilation output, accept omitted file sources in older full-build responses from either --proposal JSON or the installed compiler, conservatively attributing those files to all current .nat sources. New compiler schemas still require sources, and every scoped response must retain explicit dependencies."
+    },
+    {
+      "id": "COMP-010",
+      "source": "compilation.nat",
+      "statement": "Under Full compilation output, diagnostics for an invalid semantic ID or source name the record kind and ID, for example 'invalid assumption A-01 or source'."
+    },
+    {
+      "id": "COMP-011",
+      "source": "compilation.nat",
+      "statement": "Under Full compilation input, instructions for both full and scoped compilation explicitly state '.nat files are Markdown' and direct the compiler to view referenced images using read-only tools; scoped input includes changed sources and affected old output content while omitting unrelated source and output content."
+    },
+    {
+      "id": "INC-001",
+      "source": "incremental.nat",
+      "statement": "Record per-spec input hashes including direct references and per-output source dependencies, and verify tracked outputs before every rebuild."
+    },
+    {
+      "id": "INC-002",
+      "source": "incremental.nat",
+      "statement": "Scope existing-source changes only when dependency metadata is complete and at least one but not all outputs are affected; added/removed sources, missing metadata, or all affected outputs require full compilation."
+    },
+    {
+      "id": "INC-003",
+      "source": "incremental.nat",
+      "statement": "Scoped input includes only changed specs, relevant prior semantic records, affected output contents, prior dependency metadata, run/check commands, and IDs reserved by unchanged specs."
+    },
+    {
+      "id": "INC-004",
+      "source": "incremental.nat",
+      "statement": "Scoped responses replace changed-source semantic records and replace or explicitly remove every affected output, may add outputs, and provide complete updated commands and summary."
+    },
+    {
+      "id": "INC-005",
+      "source": "incremental.nat",
+      "statement": "Reject scoped changes to unaffected outputs or unchanged-source semantic records, validate unique IDs, paths, dependencies and commands after merging, preserve unaffected files, and fall back to full compilation before writes for invalid scoped responses or wider effects."
+    },
+    {
+      "id": "INC-006",
+      "source": "incremental.nat",
+      "statement": "Use shared freshness and rebuild logic for build, watch, run, and test; unchanged builds without explicit proposals never invoke Codex, --full always compiles the whole project, and linked-file edits change every directly referring spec."
+    },
+    {
+      "id": "PROD-001",
+      "source": "product.nat",
+      "statement": "Implement a small local compiler loop as a Cargo-installable Rust CLI named nat for macOS and Linux with a small dependency set; generated applications may use other languages."
+    },
+    {
+      "id": "PROD-002",
+      "source": "product.nat",
+      "statement": "Treat spec/**/*.nat as authoritative human intent, inferred/assumptions.inat as reviewable replaceable inference, and generated/ as disposable code, checks, semantic records, and manifest."
+    },
+    {
+      "id": "PROD-003",
+      "source": "product.nat",
+      "statement": "Support overriding inferred behavior through source edits or assumption promotion, and require human changes to generated behavior to be expressed in specs."
+    },
+    {
+      "id": "PROD-004",
+      "source": "product.nat",
+      "statement": "A fresh nat init hello followed by nat run in the project compiles and runs a greeting; help documents all supported commands and flags."
+    },
+    {
+      "id": "PROD-005",
+      "source": "product.nat",
+      "statement": "Compile these specs into a separate generated Rust crate with binary nat and meaningful checks covering initialization, full/scoped builds, drift, and CLI behavior."
+    },
+    {
+      "id": "RUN-001",
+      "source": "runtime.nat",
+      "statement": "Execute generated programs and checks from generated/ using argument arrays without shell interpolation, stream output and diagnostics, and treat nonzero exits as errors."
+    },
+    {
+      "id": "RUN-002",
+      "source": "runtime.nat",
+      "statement": "When run fails for a missing executable, interpreter module, native library, or GUI display dependency, report 'recompiling for this machine', send the failure to Codex for one full recompilation, validate and run replacement checks, then retry once with the original arguments."
+    },
+    {
+      "id": "RUN-003",
+      "source": "runtime.nat",
+      "statement": "Report ordinary runtime failures without regeneration and prevent repeated repair loops."
+    },
+    {
+      "id": "RUN-004",
+      "source": "runtime.nat",
+      "statement": "Explain in CLI help and README that compilation has read-only workspace access but generated programs and checks execute with the user's local privileges; do not silently select or execute saved proposals."
+    },
+    {
+      "id": "RUN-005",
+      "source": "runtime.nat",
+      "statement": "Provide meaningful tests without live Codex calls for initialization, forwarding, full/scoped/no-op builds, old manifests, drift refusal, source/reference staleness, promotion, watching, and runtime dependency repair."
+    },
+    {
+      "id": "SELF-001",
+      "source": "self-hosting.nat",
+      "statement": "Treat the repository root spec/ as canonical and produce a generated/ Rust crate with Cargo manifest, binary nat, and cargo test --offline or an equivalent reliable check."
+    },
+    {
+      "id": "SELF-002",
+      "source": "self-hosting.nat",
+      "statement": "Keep the handwritten bootstrap and generated candidate separate until the candidate implements the specified CLI and build protocol and passes parity checks; do not overwrite the running compiler during its own build."
+    },
+    {
+      "id": "SELF-003",
+      "source": "self-hosting.nat",
+      "statement": "Document bootstrap installation and candidate build, testing, comparison, and installation, clearly identifying which runner each Cargo command installs."
+    },
+    {
+      "id": "SELF-004",
+      "source": "self-hosting.nat",
+      "statement": "Allow rebuilding from .nat sources and installed Codex without treating bootstrap Rust code as authoritative, and refuse to replace directly edited generated artifacts until edits are moved into specs or discarded."
+    },
+    {
+      "id": "SELF-005",
+      "source": "self-hosting.nat",
+      "statement": "The generated Rust crate, including test targets, must compile, pass tests, and pass Clippy with warnings denied."
+    },
+    {
+      "id": "SELF-006",
+      "source": "self-hosting.nat",
+      "statement": "Generated tests obey Rust borrowing rules: bind a vector element once before mutating multiple fields rather than taking overlapping mutable borrows through separate indexed expressions."
+    },
+    {
+      "id": "SELF-007",
+      "source": "self-hosting.nat",
+      "statement": "Give each generated file the smallest accurate set of .nat dependencies to enable subsequent scoped rebuilds; list all specs only for files genuinely depending on all specs."
+    },
+    {
+      "id": "FMT-001",
+      "source": "spec-format.nat",
+      "statement": "Read UTF-8 Markdown and plain-prose .nat files recursively beneath spec/, requiring at least one source and using exact spec-relative paths with slash separators in records; keep citations in statements or reasons rather than source paths."
+    },
+    {
+      "id": "FMT-002",
+      "source": "spec-format.nat",
+      "statement": "Resolve direct Markdown links and images relative to the containing .nat file and track linked local file bytes without following references recursively."
+    },
+    {
+      "id": "FMT-003",
+      "source": "spec-format.nat",
+      "statement": "Do not fetch or track remote URLs, email links, same-document anchors, or raw HTML references."
+    },
+    {
+      "id": "FMT-004",
+      "source": "spec-format.nat",
+      "statement": "Reject missing local files, references escaping the project or entering generated/ or inferred/, and all symlinks within spec/; reference errors identify the source and failed destination."
+    },
+    {
+      "id": "FMT-005",
+      "source": "spec-format.nat",
+      "statement": "Treat linked content as supporting context rather than instructions overriding human .nat intent."
+    },
+    {
+      "id": "FMT-006",
+      "source": "spec-format.nat",
+      "statement": "Read sources and reference hashes deterministically, detect source additions/removals/edits and reference changes, and avoid compiler calls for unchanged inputs."
+    },
+    {
+      "id": "FMT-007",
+      "source": "spec-format.nat",
+      "statement": "Under Local references, canonicalize both the project root and each target before checking containment, accept macOS /var and /private/var aliases of the same project, preserve stable project-relative reference keys, and test ordinary and nested-spec references through an aliased project root."
+    }
+  ],
+  "assumptions": []
+}

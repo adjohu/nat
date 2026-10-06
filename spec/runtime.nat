@@ -1,0 +1,9 @@
+# Running generated software and safety
+
+Run generated commands with argument arrays, never by interpolating a shell string. Execute them from the project's `generated/` directory. Stream output so users can see normal program behavior and diagnostics. A nonzero exit status is an error.
+
+If `nat run` fails because an executable, interpreter module, native library, or GUI display dependency is unavailable, report that it is `recompiling for this machine`, send the failure back to Codex, and perform one full recompilation. Validate and run generated checks, then retry the run command once with the original forwarded arguments. Other failures must be reported without regeneration. Do not loop indefinitely.
+
+The runner's own compiler invocation has read-only workspace access. Generated code and checks execute with the user's local account privileges. The CLI and README should make that trust boundary clear and avoid silently executing a saved proposal unless the user explicitly asks to build/run/test with it.
+
+Provide tests that exercise initialization, argument forwarding, full and scoped builds, unchanged no-op builds, old manifest compatibility, modified artifact refusal, input/reference staleness, promotion, watcher response, and runtime dependency repair without requiring a live Codex call.

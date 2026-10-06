@@ -1,0 +1,15 @@
+# Human-written spec format
+
+`.nat` files are UTF-8 Markdown. Plain prose remains valid. A project has a `spec/` directory with at least one `.nat` file, including nested files. Paths in compiler records are exact paths relative to `spec/`, with `/` separators. They never include `spec/`, line numbers, fragments, or requirement IDs. Preserve IDs and detailed citations in the statement or reason instead.
+
+## Local references
+
+Markdown links and images in a `.nat` file may point to local supporting files. Resolve their paths relative to the containing `.nat` file. Track the bytes of directly linked local files as inputs of that `.nat` file, so editing an image or document makes the referring spec stale. Do not follow references recursively. Remote URLs, email links, and same-document anchors remain context but are not fetched or tracked. Raw HTML references are not tracked.
+
+Reject missing local files, references that escape the project, and references into `generated/` or `inferred/`. Reject symlinks within `spec/`. Give a useful error naming the spec and reference that failed. Treat referenced content as supporting context, not instructions that override the `.nat` source.
+
+Canonicalize both the project root and each local reference target before comparing path containment. On macOS a temporary project may be named through `/var` while the same location canonicalizes to `/private/var`; this is still inside the project, not a symlink escape. Preserve the stable project-relative reference path in the source record. Test both ordinary links and references from nested specs when the project root has such an alias.
+
+## Stable input identity
+
+Read every `.nat` file and its tracked reference hashes in a deterministic order. A build becomes stale when a spec is added, removed, or edited, or when a tracked local reference changes. Unchanged inputs should not trigger a compiler call.

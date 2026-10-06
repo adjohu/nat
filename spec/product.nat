@@ -1,0 +1,22 @@
+# nat
+
+`nat` is a local command-line compiler for projects whose human-authored source is natural language. Build this runner as a Rust CLI named `nat`. It must be installable with Cargo and work on macOS and Linux. Keep dependencies small.
+
+## Source-of-truth hierarchy
+
+1. `spec/**/*.nat` is the human-authored, authoritative description of behavior.
+2. `inferred/assumptions.inat` records product behavior the compiler had to infer. It is reviewable and replaceable, not authoritative.
+3. `generated/` contains disposable implementation, checks, semantic records, and the build manifest.
+
+Generated code is not edited by hand. A human can promote an assumption into `spec/`, or change the spec to override it. A rebuild then revises the inference and implementation.
+
+## Scope
+
+The first implementation is a small compiler loop, not a formal natural-language type system. It maps requirements and assumptions to source files, asks the local Codex CLI for code and checks, validates the result, and records enough state to detect stale builds and support scoped rebuilds. The generated application can use a language other than Rust; only the nat runner itself is required to be Rust.
+
+## Acceptance
+
+- A fresh `nat init hello && cd hello && nat run` creates and runs a starter command-line greeting.
+- Running `nat help` explains every supported command and flag.
+- The runner can compile itself from this `spec/` directory into a separate `generated/` Rust crate whose binary is also named `nat`.
+- The generated runner passes meaningful checks for initialization, full builds, scoped builds, drift detection, and CLI behavior.
