@@ -89,6 +89,8 @@ Build progress appears on stderr, including the compilation scope and elapsed-ti
 updates every 10 seconds while Codex is working. Compiler errors include diagnostic
 output if compilation fails.
 
+In compiler output and imported proposals, `source` and `sources` contain exact paths relative to `spec/` (for example, `03-warrant.nat`). Put requirement IDs, line numbers, and detailed citations in the statement or reason instead of appending them to a path. The compiler's output schema restricts these fields to existing source paths; incremental requirement and assumption records are restricted to changed sources.
+
 ## Writing
 
 `.nat` files are Markdown. Use headings, lists, code examples, links, and images
