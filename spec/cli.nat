@@ -1,0 +1,29 @@
+# Command-line interface
+
+The executable is `nat`. Its help shows this command shape:
+
+```text
+nat init [DIR]
+nat build [--project DIR] [--proposal JSON] [--full]
+nat watch [--project DIR] [--no-test] [--proposal JSON]
+nat run [--project DIR] [ARGS...]
+nat test [--project DIR]
+nat status [--project DIR]
+nat check [--project DIR]
+nat promote ID [--project DIR]
+```
+
+`nat help`, `nat --help`, and `nat -h` print help. `nat version`, `nat --version`, and `nat -V` print the package version. Invalid commands, options, missing values, and excess arguments fail with a useful message and nonzero exit status.
+
+Except for `init`, commands find the project by walking from the current directory toward its ancestors until they find `spec/`. `--project DIR` selects a project explicitly and requires that `DIR/spec` exist. Paths passed as flags can be relative to the caller's current directory.
+
+## Commands
+
+- `init [DIR]` defaults to the current directory. Create `spec/`, `inferred/`, and `generated/` if needed. If there are no `.nat` files, create `spec/app.nat` describing a CLI greeting by name, defaulting to the world. Do not replace existing `.nat` files. Print the project path and next step.
+- `build` validates and writes a compilation. Skip the compiler when inputs and tracked outputs are current and no explicit proposal is given. `--full` forces a whole-project rebuild. `--proposal JSON` always loads and validates that saved response, even if the previous build is current; it is an explicit request to apply a proposal. Use it for deterministic or offline builds.
+- `run` builds when needed and executes the generated run command from `generated/`. Forward remaining arguments to that command without a shell. A literal `--` ends nat option parsing.
+- `test` builds when needed, executes all generated checks from `generated/`, and fails if there are none or if any check fails.
+- `status` reports no build, stale inputs, edited/missing tracked artifacts, or a current build, along with the previous summary and file counts.
+- `check` exits successfully only when specs, references, generated files, and inferred files match the last build.
+- `watch` checks once at startup, then detects input changes. Poll approximately every 150 ms and wait approximately 400 ms after the last change before rebuilding. Run generated checks by default; `--no-test` skips checks. On a build/check error, report it and keep watching.
+- `promote ID` accepts an existing inferred assumption from a current build, appends its statement to `spec/promoted.nat`, removes it from the inferred record, and updates the manifest so `check` still passes. Do not silently overwrite other source files.

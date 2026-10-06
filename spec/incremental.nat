@@ -1,0 +1,11 @@
+# Scoped rebuilds
+
+The manifest records a hash for each `.nat` source, including its tracked local references, and a list of source dependencies for each generated file. `nat` verifies tracked outputs before every rebuild.
+
+For a changed set of existing specs, compute the generated files whose recorded dependencies include any changed spec. A scoped compilation is possible only if the previous manifest has complete dependency data and at least one but not all generated outputs are affected. Added/removed specs, missing dependency data, or every output being affected cause a full rebuild.
+
+For a scoped compilation, send Codex only the changed specs, relevant prior requirements and assumptions, the affected generated file contents, prior dependency metadata, run/check commands, and reserved IDs from unaffected specs. The response replaces requirements and assumptions attributed to changed specs and fully replaces or removes each affected output. It may add new outputs. The response also includes complete updated run/check commands and summary.
+
+Never let a scoped response change or delete an unaffected output or assign a changed semantic record to an unchanged spec. Validate unique IDs, paths, dependencies, and commands after combining the response with preserved records. Leave unaffected output files untouched. If Codex says the edit may affect other outputs, or the scoped response is invalid, fall back to a full compilation before changing files. `--full` always uses the full path.
+
+An unchanged `build` does not invoke Codex. `watch`, `run`, and `test` use this same freshness and rebuild logic. A changed linked image or document counts as a change to every `.nat` file that directly refers to it.

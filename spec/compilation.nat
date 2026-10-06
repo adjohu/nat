@@ -1,0 +1,25 @@
+# Compilation protocol
+
+Use the installed, authenticated `codex` CLI to compile natural-language source. Run Codex from the project root with read-only workspace access and a structured JSON output schema. Pass an absolute temporary response path with `-o` and an absolute schema path with `--output-schema`; those flags are part of the existing CLI and let offline compiler fixtures exercise the same protocol. The Rust runner alone writes generated and inferred files. Surface Codex failures and diagnostic output to the user. Keep the normal compiler transcript and the submitted spec text out of the terminal on success. Report `Compiling all N spec(s) with Codex` immediately for a full build, or `Compiling N changed spec(s) with Codex; M generated file(s) affected` for a scoped build. Follow with periodic `Still compiling with Codex (Ns elapsed)` updates while it works.
+
+## Full compilation input
+
+Give the compiler every human spec's original Markdown and hashes of its directly linked local references, plus the previous inferred assumptions and semantic record when present. Tell it to inspect local runtime availability before choosing an interpreter or GUI toolkit. It may infer missing product semantics, but each assumption must be explicit in the response. It should generate a minimal runnable program and meaningful checks, with no features invented beyond the specs and surfaced assumptions.
+
+The compiler instructions for full and scoped builds explicitly say `.nat files are Markdown` and direct the compiler to `view referenced images` with read-only tools. In a scoped build, include the changed sources and affected old output content, and omit unrelated source and output content.
+
+## Full compilation output
+
+Use a JSON object with `summary`, `requirements`, `assumptions`, `files`, `run`, and `checks`:
+
+- Each requirement has `id`, `source`, and `statement`.
+- Each assumption has `id`, `source`, `statement`, and `reason`.
+- Each file has `path`, full `content`, and `sources` listing all `.nat` files it directly or indirectly depends on. If unsure, list all source paths.
+- `run` is an argv array; `checks` is an array of argv arrays. These commands run from `generated/` without a shell. An empty `run` means the project is not runnable.
+
+Require nonempty valid IDs and mapped requirements, existing source paths, unique IDs and output paths, and safe relative generated paths. Reject paths that escape `generated/`, use symlinks, collide with a parent file, or use reserved `ir.json` or `.nat-manifest.json`. Reject empty argv elements. JSON output schemas constrain `source` and `sources` to the exact source paths supplied; still validate saved `--proposal` results in Rust.
+When a semantic record has an invalid ID or source, name its kind and ID in the diagnostic; for example, `invalid assumption A-01 or source`.
+
+For compatibility with older full-build responses, accept a file without `sources` from `--proposal JSON` or the installed compiler and attribute it conservatively to all current `.nat` sources. The schema for new compiler output still requires `sources`. Scoped responses must retain explicit dependencies.
+
+Before applying a result, verify that tracked generated and inferred files have not been edited or deleted. Reject overwriting an untracked file. Validate the whole response before writing any file. Render `generated/ir.json` with the summary, requirements, and assumptions; render `inferred/assumptions.inat` with reviewable assumption text and source/reason. Each inferred item includes a line `Source: spec/<exact source path>` and retains the full reason text. Record hashes, commands, dependency lists, and summary in `generated/.nat-manifest.json`. Remove outputs no longer in a successful full result. Avoid rewriting files whose bytes have not changed.

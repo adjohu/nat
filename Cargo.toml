@@ -2,6 +2,8 @@
 name = "nat-runner"
 version = "0.1.0"
 edition = "2021"
+autobins = false
+default-run = "nat"
 description = "A small runner for natural-language source projects"
 authors = ["Adam Hutchinson"]
 license = "Apache-2.0"
@@ -9,7 +11,15 @@ repository = "https://github.com/adjohu/nat"
 
 [[bin]]
 name = "nat"
+path = "generated/src/main.rs"
+
+[[bin]]
+name = "nat-bootstrap"
 path = "src/main.rs"
+required-features = ["bootstrap"]
+
+[features]
+bootstrap = []
 
 [dependencies]
 pulldown-cmark = { version = "0.13", default-features = false }
