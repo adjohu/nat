@@ -8,16 +8,34 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 #[test]
 fn one_spec_edit_updates_only_its_output() {
+    check_scoped_edit(false);
+}
+
+#[test]
+fn one_image_edit_updates_only_its_dependent_output() {
+    check_scoped_edit(true);
+}
+
+fn check_scoped_edit(edit_image: bool) {
     let stamp = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
-    let root = std::env::temp_dir().join(format!("nat-incremental-{}-{stamp}", std::process::id()));
+    let root = std::env::temp_dir().join(format!(
+        "nat-incremental-{}-{stamp}-{edit_image}",
+        std::process::id()
+    ));
     let spec = root.join("spec");
     let bin = root.join("bin");
     fs::create_dir_all(&spec).unwrap();
     fs::create_dir(&bin).unwrap();
-    fs::write(spec.join("a.nat"), "ORIGINAL_A_SOURCE\n").unwrap();
+    fs::create_dir(root.join("references")).unwrap();
+    fs::write(root.join("references/design.png"), [0, 255, 1]).unwrap();
+    fs::write(
+        spec.join("a.nat"),
+        "# ORIGINAL_A_SOURCE\n\n![Design](../references/design.png)\n",
+    )
+    .unwrap();
     fs::write(spec.join("b.nat"), "UNIQUE_B_SOURCE_CONTENT\n").unwrap();
     fs::write(spec.join("c.nat"), "UNIQUE_C_SOURCE_CONTENT\n").unwrap();
 
@@ -54,7 +72,17 @@ fn one_spec_edit_updates_only_its_output() {
     let b_inode = fs::metadata(root.join("generated/b.py")).unwrap().ino();
     let c_inode = fs::metadata(root.join("generated/c.py")).unwrap().ino();
 
-    fs::write(spec.join("a.nat"), "CHANGED_A_SOURCE\n").unwrap();
+    if edit_image {
+        fs::write(root.join("references/design.png"), [0, 255, 2]).unwrap();
+    } else {
+        fs::write(spec.join("a.nat"), "CHANGED_A_SOURCE\n").unwrap();
+    }
+    let stale = Command::new(binary)
+        .arg("check")
+        .current_dir(&root)
+        .output()
+        .unwrap();
+    assert!(!stale.status.success());
     let patch = json!({
         "full_rebuild_required": false,
         "reason": "",
@@ -94,6 +122,8 @@ fn one_spec_edit_updates_only_its_output() {
         "{}",
         String::from_utf8_lossy(&updated.stderr)
     );
+    assert!(String::from_utf8_lossy(&updated.stderr)
+        .contains("Compiling 1 changed spec(s) with Codex; 1 generated file(s) affected"));
     assert_eq!(
         fs::read_to_string(root.join("generated/a.py")).unwrap(),
         "print('new a')\n"
@@ -107,7 +137,14 @@ fn one_spec_edit_updates_only_its_output() {
         c_inode
     );
     let prompt = fs::read_to_string(&captured).unwrap();
-    assert!(prompt.contains("CHANGED_A_SOURCE"));
+    if edit_image {
+        assert!(prompt.contains("ORIGINAL_A_SOURCE"));
+        assert!(prompt.contains("references/design.png"));
+    } else {
+        assert!(prompt.contains("CHANGED_A_SOURCE"));
+    }
+    assert!(prompt.contains(".nat files are Markdown"));
+    assert!(prompt.contains("view referenced images"));
     assert!(prompt.contains("print('old a')"));
     assert!(!prompt.contains("UNIQUE_B_SOURCE_CONTENT"));
     assert!(!prompt.contains("UNIQUE_C_SOURCE_CONTENT"));
@@ -149,6 +186,7 @@ fn one_spec_edit_updates_only_its_output() {
         .output()
         .unwrap();
     assert!(unchanged.status.success());
+    assert!(!String::from_utf8_lossy(&unchanged.stderr).contains("Compiling"));
     assert!(!captured.exists(), "unchanged build should not call Codex");
 
     fs::write(spec.join("a.nat"), "A_SECOND_CHANGE\n").unwrap();
@@ -242,6 +280,9 @@ fn one_spec_edit_updates_only_its_output() {
     assert!(fs::read_to_string(&captured)
         .unwrap()
         .contains("UNIQUE_B_SOURCE_CONTENT"));
+    assert!(fs::read_to_string(&captured)
+        .unwrap()
+        .contains("view referenced images"));
     assert_eq!(
         fs::read_to_string(root.join("generated/a.py")).unwrap(),
         "print('full a')\n"
