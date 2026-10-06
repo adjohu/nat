@@ -163,7 +163,7 @@ The earlier hand-written runner remains available as a bootstrap if needed:
 cargo run --features bootstrap --bin nat-bootstrap -- build --project .
 ```
 
-More context: [What if code wasn't the source?](https://adjohu.com/blog/what-if-code-wasnt-the-source)
+More context: [Coding in natural language](https://adjohu.com/blog/coding-in-natural-language/)
 
 ## License
 
