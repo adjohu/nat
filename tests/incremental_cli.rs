@@ -99,11 +99,12 @@ fn check_scoped_edit(edit_image: bool) {
     let fake_codex = bin.join("codex");
     fs::write(
         &fake_codex,
-        "#!/bin/sh\nout=\nwhile [ \"$#\" -gt 0 ]; do\n  if [ \"$1\" = '-o' ]; then shift; out=\"$1\"; fi\n  shift\ndone\ncat >\"$NAT_CAPTURE\"\ncp \"$NAT_TEST_PROPOSAL\" \"$out\"\n",
+        "#!/bin/sh\nout=\nschema=\nwhile [ \"$#\" -gt 0 ]; do\n  if [ \"$1\" = '-o' ]; then shift; out=\"$1\"; fi\n  if [ \"$1\" = '--output-schema' ]; then shift; schema=\"$1\"; fi\n  shift\ndone\ncp \"$schema\" \"$NAT_SCHEMA_CAPTURE\"\ncat >\"$NAT_CAPTURE\"\ncp \"$NAT_TEST_PROPOSAL\" \"$out\"\n",
     )
     .unwrap();
     fs::set_permissions(&fake_codex, fs::Permissions::from_mode(0o755)).unwrap();
     let captured = root.join("prompt.txt");
+    let captured_schema = root.join("schema.json");
     let path = format!(
         "{}:{}",
         bin.display(),
@@ -114,6 +115,7 @@ fn check_scoped_edit(edit_image: bool) {
         .current_dir(&root)
         .env("PATH", path)
         .env("NAT_CAPTURE", &captured)
+        .env("NAT_SCHEMA_CAPTURE", &captured_schema)
         .env("NAT_TEST_PROPOSAL", &patch_path)
         .output()
         .unwrap();
@@ -135,6 +137,19 @@ fn check_scoped_edit(edit_image: bool) {
     assert_eq!(
         fs::metadata(root.join("generated/c.py")).unwrap().ino(),
         c_inode
+    );
+    let schema: Value = serde_json::from_slice(&fs::read(&captured_schema).unwrap()).unwrap();
+    for collection in ["requirements", "assumptions"] {
+        assert_eq!(
+            schema["properties"][collection]["items"]["properties"]["source"]["enum"],
+            json!(["a.nat"]),
+            "incremental semantic records must reference only changed source files"
+        );
+    }
+    assert_eq!(
+        schema["properties"]["files"]["items"]["properties"]["sources"]["items"]["enum"],
+        json!(["a.nat", "b.nat", "c.nat"]),
+        "generated files may still depend on unchanged source files"
     );
     let prompt = fs::read_to_string(&captured).unwrap();
     if edit_image {
