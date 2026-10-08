@@ -1,23 +1,23 @@
 {
   "version": 2,
-  "input_hash": "7d5b5449fce022b28e3a310414259b6e2566b08d7b943d086d296388a5c7d170",
+  "input_hash": "f79b624944b8a5105037a2cb46cd2d1f794d146914896ccacb81afa3d488a1d5",
   "source_hashes": {
     "cli.nat": "5ce4dc389ab6b6f27176755f79096555c30bd3cd7416fc85ba5d6519b316c972",
     "compilation.nat": "4b5fe2e0bfdfd73856d109c68fbcba8ac0b646627aab7bd3d268f12ad20fad14",
     "incremental.nat": "e0a6ea772607fc563be18a10756851e5d75273ad48503d27c8cfb27673204ece",
     "product.nat": "8cac98f3619fa2c1fe4055466734be4a6607eedbf5910b6eb191c84d3e4fef32",
     "runtime.nat": "13a408367bbfc24868200e27de4acd6a1ab221f578937f3111f5d58f7cfb0e89",
-    "self-hosting.nat": "2c6bbb5c9b2d2b4bd0b806dde3d58dd7d1c61621151268c546a2acbce2635368",
+    "self-hosting.nat": "1a6924767cfa5cab65110f9809f7ebe845bfe59d519799743d9c451f4151927b",
     "spec-format.nat": "2e4e103718c5172d72fc6f3a922186b8d95f2326d3642e34ed8123d5b948f344"
   },
   "generated": {
     "Cargo.toml": "a7c8d8af7d1867cb5de99ee7007a54336c78fda1ecb82d494fbb01985fa8465a",
-    "README.md": "5f52ce72937ba087c264e5b50ae7503fb298a70d69ef0cc2a343d2e888c23318",
-    "ir.json": "03af63d35f056e42c0ddb24e68bdae59b2570dd40e8ce6681adee6ebf0d7a6d4",
+    "README.md": "59ce908f97297341df2599f78c028b1c70e5fd1d7c5a0e0072bcb3777134bb77",
+    "ir.json": "e3352bc33fce27858da90727fb510ba0f9fff2c1b9b46e2d17b26837aefb9d79",
     "src/compiler.rs": "57db24e342d4b653ab8f80125fa53ee43ff1510753551def73a04efa2b0f889c",
     "src/main.rs": "3fe2fc246b3fa66ddf73fc2bda0cd228cb41cf1ec9219fa8d2231edb8bbd7830",
     "src/tests.rs": "d784d9cc4a5ad5680aebddbf9e68eaa7d6ce87f58826aabfaa94bc61ee9ecd00",
-    "tests/cli.rs": "d5ebecbb23addcf87029fead26fdf5fac10d1b6db57d577a511949d79f497608"
+    "tests/cli.rs": "f87998b42a061a6ab4846f17aa605bf46de976690f91c7e85e73722a8336c084"
   },
   "file_sources": {
     "Cargo.toml": [
@@ -68,7 +68,7 @@
     ]
   },
   "inferred": {
-    "assumptions.inat": "94c3f0649db4b7491a3165383bba7a83fc25e3f9705196ba507ffff7522021d6"
+    "assumptions.inat": "c466ae1cc98edf0f4c87e979785bbbeb773cbb11d9f8e41547f4a3daad9398a7"
   },
   "run": [
     "cargo",
@@ -99,5 +99,5 @@
       "warnings"
     ]
   ],
-  "summary": "Rust nat candidate with verified full-build reuse, explicit complete/incomplete responses, retained rejection diagnostics, legacy full-response compatibility, and unchanged scoped authority rules. Includes offline CLI/schema fixtures for reuse, drift, rejection, and existing CLI behavior. A read-only comparison of the previous six-file candidate measured 108,286 fewer response bytes (87.78%) with all-null reuse; this is not a live token or timing measurement. Generated software and checks were not executed."
+  "summary": "Rust nat candidate with verified full-build reuse, complete/incomplete responses, retained rejection diagnostics, legacy compatibility, scoped builds, CLI commands, source-reference tracking, and runtime dependency repair. Acceptance tests now resolve filesystem identity, exercise inherited and canonical temporary directories and project aliases, verify exact retained bytes, and reject different directories and escapes while preserving existing scenarios. Rust, Clippy, and offline dependency resolution were inspected read-only; generated software and checks were not executed."
 }

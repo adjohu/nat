@@ -5,3 +5,21 @@ This repository is itself a nat project. Its root `spec/` directory is the canon
 The existing hand-written `src/main.rs` is a bootstrap compiler until a generated candidate passes parity checks. Keep bootstrap and generated runner separate while comparing them; do not overwrite the running compiler during its own build. Document how to build and test the candidate and how to install the bootstrap. A candidate must implement the CLI and build protocol described in these specs before it can replace the bootstrap. Its Rust crate, including test targets, must compile, pass tests, and pass Clippy with warnings denied. Generated tests obey Rust's borrow rules: bind a vector element once before mutating multiple fields, instead of taking two mutable borrows through separate index expressions in one tuple. Rebuilding nat must be possible from the `.nat` sources and a working installed Codex CLI, without treating the bootstrap Rust implementation as an authoritative requirement source.
 
 The generated implementation is disposable: if it is edited directly, the next build refuses to replace it until the edit is moved into `spec/` or discarded. The repository must make it clear which runner Cargo currently installs and which one is a generated candidate. Give each generated file the smallest accurate set of `.nat` dependencies so a later edit can use a scoped rebuild; list all specs only when the file genuinely depends on all of them.
+
+Filesystem identity acceptance must use resolved filesystem paths when comparing
+locations. On macOS, an existing project reached through /var and /private/var
+may be the same project. A reported retained-response path may legitimately use
+its canonical spelling even if the caller supplied an aliased project path.
+Generated acceptance tests must resolve both existing paths before checking that
+the retained response belongs to the project and lies outside generated/ and
+inferred/. Do not require a particular spelling, change TMPDIR to hide an alias,
+or weaken traversal/symlink escape refusal. Keep the emitted canonical path useful
+for opening the real file.
+
+Run the rejection/preservation fixtures under the ordinary inherited temporary
+directory as well as an explicitly canonical temporary directory. Where the host
+provides an alias to the same existing project, exercise both spellings and verify
+that they identify the same retained response location and exact response bytes.
+A genuinely different directory must still fail containment. These are filesystem
+identity checks, not string-prefix checks; preserve all existing reuse, incomplete
+response, stale input and unchanged-build acceptance scenarios.

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "summary": "Rust nat candidate with verified full-build reuse, explicit complete/incomplete responses, retained rejection diagnostics, legacy full-response compatibility, and unchanged scoped authority rules. Includes offline CLI/schema fixtures for reuse, drift, rejection, and existing CLI behavior. A read-only comparison of the previous six-file candidate measured 108,286 fewer response bytes (87.78%) with all-null reuse; this is not a live token or timing measurement. Generated software and checks were not executed.",
+  "summary": "Rust nat candidate with verified full-build reuse, complete/incomplete responses, retained rejection diagnostics, legacy compatibility, scoped builds, CLI commands, source-reference tracking, and runtime dependency repair. Acceptance tests now resolve filesystem identity, exercise inherited and canonical temporary directories and project aliases, verify exact retained bytes, and reject different directories and escapes while preserving existing scenarios. Rust, Clippy, and offline dependency resolution were inspected read-only; generated software and checks were not executed.",
   "requirements": [
     {
       "id": "CLI-001",
@@ -133,41 +133,6 @@
       "statement": "Provide meaningful tests without live Codex calls for initialization, forwarding, full/scoped/no-op builds, old manifests, drift refusal, source/reference staleness, promotion, watching, and runtime dependency repair."
     },
     {
-      "id": "SELF-001",
-      "source": "self-hosting.nat",
-      "statement": "Treat the repository root spec/ as canonical and produce a generated/ Rust crate with Cargo manifest, binary nat, and cargo test --offline or an equivalent reliable check."
-    },
-    {
-      "id": "SELF-002",
-      "source": "self-hosting.nat",
-      "statement": "Keep the handwritten bootstrap and generated candidate separate until the candidate implements the specified CLI and build protocol and passes parity checks; do not overwrite the running compiler during its own build."
-    },
-    {
-      "id": "SELF-003",
-      "source": "self-hosting.nat",
-      "statement": "Document bootstrap installation and candidate build, testing, comparison, and installation, clearly identifying which runner each Cargo command installs."
-    },
-    {
-      "id": "SELF-004",
-      "source": "self-hosting.nat",
-      "statement": "Allow rebuilding from .nat sources and installed Codex without treating bootstrap Rust code as authoritative, and refuse to replace directly edited generated artifacts until edits are moved into specs or discarded."
-    },
-    {
-      "id": "SELF-005",
-      "source": "self-hosting.nat",
-      "statement": "The generated Rust crate, including test targets, must compile, pass tests, and pass Clippy with warnings denied."
-    },
-    {
-      "id": "SELF-006",
-      "source": "self-hosting.nat",
-      "statement": "Generated tests obey Rust borrowing rules: bind a vector element once before mutating multiple fields rather than taking overlapping mutable borrows through separate indexed expressions."
-    },
-    {
-      "id": "SELF-007",
-      "source": "self-hosting.nat",
-      "statement": "Give each generated file the smallest accurate set of .nat dependencies to enable subsequent scoped rebuilds; list all specs only for files genuinely depending on all specs."
-    },
-    {
       "id": "FMT-001",
       "source": "spec-format.nat",
       "statement": "Read UTF-8 Markdown and plain-prose .nat files recursively beneath spec/, requiring at least one source and using exact spec-relative paths with slash separators in records; keep citations in statements or reasons rather than source paths."
@@ -296,6 +261,51 @@
       "id": "COMP-019",
       "source": "compilation.nat",
       "statement": "Measure response-byte savings using a real previous candidate and distinguish the offline encoding comparison from live token usage or wall-clock savings."
+    },
+    {
+      "id": "SELF-001",
+      "source": "self-hosting.nat",
+      "statement": "Treat the repository root spec/ as canonical and produce a generated/ Rust crate with Cargo manifest, binary nat, and cargo test --offline or an equivalent reliable check."
+    },
+    {
+      "id": "SELF-002",
+      "source": "self-hosting.nat",
+      "statement": "Keep the handwritten bootstrap and generated candidate separate until the candidate implements the specified CLI and build protocol and passes parity checks; do not overwrite the running compiler during its own build."
+    },
+    {
+      "id": "SELF-003",
+      "source": "self-hosting.nat",
+      "statement": "Document bootstrap installation and candidate build, testing, comparison, and installation, clearly identifying which runner each Cargo command installs."
+    },
+    {
+      "id": "SELF-004",
+      "source": "self-hosting.nat",
+      "statement": "Allow rebuilding from .nat sources and installed Codex without treating bootstrap Rust code as authoritative, and refuse to replace directly edited generated artifacts until edits are moved into specs or discarded."
+    },
+    {
+      "id": "SELF-005",
+      "source": "self-hosting.nat",
+      "statement": "The generated Rust crate, including test targets, must compile, pass tests, and pass Clippy with warnings denied."
+    },
+    {
+      "id": "SELF-006",
+      "source": "self-hosting.nat",
+      "statement": "Generated tests obey Rust borrowing rules: bind a vector element once before mutating multiple fields rather than taking overlapping mutable borrows through separate indexed expressions."
+    },
+    {
+      "id": "SELF-007",
+      "source": "self-hosting.nat",
+      "statement": "Give each generated file the smallest accurate set of .nat dependencies to enable subsequent scoped rebuilds; list all specs only for files genuinely depending on all specs."
+    },
+    {
+      "id": "SELF-008",
+      "source": "self-hosting.nat",
+      "statement": "Filesystem identity acceptance must resolve existing paths before comparison, including the retained response, project, generated/, and inferred/. Accept canonical diagnostic paths for aliased projects such as macOS /var and /private/var, keep reported paths usable for opening the real file, and do not require a spelling, alter TMPDIR to hide aliases, or weaken traversal and symlink escape refusal."
+    },
+    {
+      "id": "SELF-009",
+      "source": "self-hosting.nat",
+      "statement": "Run rejection and preservation fixtures under both the inherited temporary directory and an explicitly canonical temporary directory. Exercise available aliases of the same existing project and verify the same resolved retained-response location and exact bytes. Reject genuinely different directories while preserving all existing reuse, incomplete-response, stale-input, and unchanged-build acceptance scenarios."
     }
   ],
   "assumptions": []
