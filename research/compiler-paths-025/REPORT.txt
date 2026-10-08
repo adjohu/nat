@@ -1,0 +1,47 @@
+Nat filesystem identity acceptance — 025, 2026-10-08
+
+Compiler source/runtime revision: c8b3973a30cec7e22b55b6bd54329b7559bc76d5.
+Includes verified-reuse parent b4ed696, based on original main cd4d62c.
+
+Fixed the generated tests' macOS /var versus /private/var path-spelling defect
+through spec/self-hosting.nat and ordinary scoped regeneration. Compare resolved
+existing filesystem locations, preserve containment/escape checks, and exercise both
+inherited and canonical temporary roots. The generated compiler executable source
+files did not change in this fix; tests, documentation and build metadata changed.
+No generated implementation was repaired manually.
+
+Validation passed:
+- 15 unit and 11 CLI tests (26 total) under inherited TMPDIR=/var/folders/.../T/.
+- The same 26 tests under TMPDIR=/private/tmp.
+- New retained-response alias and negative-containment acceptance.
+- All six original CLI tests, plus 12 independent reuse/refusal fixtures.
+- Clippy --all-targets with warnings denied.
+- Repository-root cargo test --offline --no-fail-fast (15 unit plus six CLI tests).
+- Nat source/artifact currency.
+No live cognitive evaluation or external provider fixture calls were made.
+
+The cumulative compiler change permits interpreter-resolved reuse of verified prior
+file bytes in complete full-build inventories and explicitly rejects incomplete
+results before replacing generated/inferred output. Prior independent real-artifact
+replay reconstructed all 68 Brain outputs exactly with 57 reused files and a 32.7%
+smaller JSON response. That is an offline encoding result, not a live speedup claim.
+See nat-brain research/semantic-actions-024 for that pinned evidence.
+
+This fix used one scoped model compilation: one changed specification, four affected
+generated files, 376.28 seconds, 210,397 input tokens including 158,848 cached input,
+20,953 output tokens (reported reasoning output 2,812). The earlier two launches
+failed in the measurement wrapper before invoking a model; they cost no model calls.
+The wrapper assumed exec was argv[0]; it now preserves global flags before exec.
+The second launch repeated that failure because an attempted wrapper edit used the
+wrong working directory. Both failed logs are retained. Controlled offline fixtures
+verify old/new argv forms, usage recording and candidate preservation.
+
+The installed ~/.cargo/bin/nat is unchanged. This report supports source merge,
+not a claim that a local installation was replaced or live compilation became faster.
+All original guard/refusal and scoped/legacy acceptance remains tested. No scope
+was narrowed merely to produce an incremental build.
+
+Archive: excludes the copied pre-build executable, Python bytecode, symlinks and
+Cargo caches. Source revision and executable hash are recorded instead. Includes
+compiler response/events/schema, failure logs, fixtures and validation evidence.
+ARTIFACTS.json verifies each archived regular file and the complete archive hash.

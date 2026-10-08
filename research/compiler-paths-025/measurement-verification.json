@@ -1,0 +1,30 @@
+[
+  {
+    "form": "plain",
+    "passed": true,
+    "argv": [
+      "exec",
+      "--json",
+      "--output-schema",
+      "/Users/adam/src/nat-brain/runs/compiler-paths-025/tmp4oi3f7tg/schema.json",
+      "-o",
+      "/Users/adam/src/nat-brain/runs/compiler-paths-025/tmp4oi3f7tg/candidate.json",
+      "-"
+    ]
+  },
+  {
+    "form": "global",
+    "passed": true,
+    "argv": [
+      "-c",
+      "approval_policy=\"never\"",
+      "exec",
+      "--json",
+      "--output-schema",
+      "/Users/adam/src/nat-brain/runs/compiler-paths-025/tmp5y59kwvj/schema.json",
+      "-o",
+      "/Users/adam/src/nat-brain/runs/compiler-paths-025/tmp5y59kwvj/candidate.json",
+      "-"
+    ]
+  }
+]

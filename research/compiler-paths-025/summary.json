@@ -1,0 +1,137 @@
+{
+  "compiler_revision": "c8b3973a30cec7e22b55b6bd54329b7559bc76d5",
+  "default_generated_tests": 26,
+  "canonical_generated_tests": 26,
+  "prior_cli_tests": 6,
+  "independent_reuse_tests": 12,
+  "root_package_tests_passed": true,
+  "clippy_warnings_denied_passed": true,
+  "installed_binary_changed": false,
+  "model_compilations": 1,
+  "instrumentation_only_failed_launches": 2,
+  "build": {
+    "exit_status": 0,
+    "elapsed_seconds": 376.27864420809783,
+    "nat_path": "/Users/adam/src/nat-brain/runs/compiler-paths-025/nat-before",
+    "nat_sha256": "14edd6e5142fe2c070a072996d6ea9105d635701b6757376fa1fc5d4713549bd",
+    "codex_path": "/Users/adam/.local/bin/codex",
+    "measurement_only": "--json event output; model, reasoning, authentication and compilation protocol unchanged",
+    "invocations": [
+      {
+        "exit_status": 0,
+        "elapsed_seconds": 375.69856320903637,
+        "usage": [
+          {
+            "input_tokens": 210397,
+            "cached_input_tokens": 158848,
+            "cache_write_input_tokens": 0,
+            "output_tokens": 20953,
+            "reasoning_output_tokens": 2812
+          }
+        ],
+        "event_counts": {
+          "thread.started": 1,
+          "turn.started": 1,
+          "item.completed": 11,
+          "item.started": 8,
+          "turn.completed": 1
+        }
+      }
+    ]
+  },
+  "verification": [
+    {
+      "name": "currency",
+      "command": [
+        "/Users/adam/src/nat-brain/runs/compiler-paths-025/nat-before",
+        "check"
+      ],
+      "env_overrides": {},
+      "TMPDIR": "/var/folders/k8/1_2d49l15yl8vng86hb_rwf00000gn/T/",
+      "exit_status": 0,
+      "seconds": 0.028800333035178483
+    },
+    {
+      "name": "default-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--no-fail-fast"
+      ],
+      "env_overrides": {},
+      "TMPDIR": "/var/folders/k8/1_2d49l15yl8vng86hb_rwf00000gn/T/",
+      "exit_status": 0,
+      "seconds": 16.092562624951825
+    },
+    {
+      "name": "canonical-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--no-fail-fast"
+      ],
+      "env_overrides": {
+        "TMPDIR": "/private/tmp"
+      },
+      "TMPDIR": "/private/tmp",
+      "exit_status": 0,
+      "seconds": 14.808187708025798
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--offline",
+        "--all-targets",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "env_overrides": {},
+      "TMPDIR": "/var/folders/k8/1_2d49l15yl8vng86hb_rwf00000gn/T/",
+      "exit_status": 0,
+      "seconds": 0.35127387498505414
+    },
+    {
+      "name": "binary",
+      "command": [
+        "cargo",
+        "build",
+        "--offline"
+      ],
+      "env_overrides": {},
+      "TMPDIR": "/var/folders/k8/1_2d49l15yl8vng86hb_rwf00000gn/T/",
+      "exit_status": 0,
+      "seconds": 0.10135308303870261
+    },
+    {
+      "name": "prior-parity",
+      "command": [
+        "cargo",
+        "test",
+        "--offline",
+        "--no-fail-fast"
+      ],
+      "env_overrides": {},
+      "TMPDIR": "/var/folders/k8/1_2d49l15yl8vng86hb_rwf00000gn/T/",
+      "exit_status": 0,
+      "seconds": 6.087029957911
+    },
+    {
+      "name": "independent-reuse",
+      "command": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/adam/src/nat-brain/runs/compiler-paths-025/check_compiler_reuse.py",
+        "/tmp/nat-sparse-024/generated/target/debug/nat",
+        "/Users/adam/src/nat-brain/runs/compiler-paths-025/reuse-fixtures"
+      ],
+      "env_overrides": {},
+      "TMPDIR": "/var/folders/k8/1_2d49l15yl8vng86hb_rwf00000gn/T/",
+      "exit_status": 0,
+      "seconds": 1.8640976670430973
+    }
+  ]
+}
