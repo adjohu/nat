@@ -21,7 +21,7 @@ The first command installs the bootstrap. After testing and parity review, this 
 cargo install --offline --path generated --force
 ```
 
-Rebuilding needs a working runner, the human sources, and installed authenticated `codex` on PATH. Bootstrap code is not authoritative. Other machines may need to download Cargo dependencies before using offline commands. This revision introduces no dependencies. Its generated program and checks were not executed during compilation.
+Rebuilding needs a working runner, the human sources, and installed authenticated `codex` on PATH. Bootstrap code is not authoritative. Other machines may need to download Cargo dependencies before using offline commands. Read-only host inspection verified Rust, Cargo, Clippy, and offline resolution of the existing dependencies. This revision introduces no dependencies. Its generated program and checks were not executed during compilation.
 
 ## Commands
 
@@ -72,8 +72,14 @@ Generated programs and checks execute with your local account privileges from `g
 
 Move intended implementation changes into human specs and restore recorded generated files before rebuilding, or deliberately discard the complete build state. Direct generated edits are never silently replaced.
 
-## Offline acceptance and measured encoding
+## Offline acceptance and filesystem identity
 
 Tests use local executable Codex fixtures through the real CLI, absolute schema/output flags, and captured schemas. They cover partial and all-null reuse, declared check execution, metadata preservation, stale and invalid reuse, incomplete rejection and response retention, legacy responses, scoped builds, CLI parsing, watching, references, promotion, and runtime repair. They make no live Codex calls.
 
-A read-only offline comparison used the actual previous six-file candidate in this project. Both encodings included identical semantic records, dependencies, commands, `status: complete`, and an empty diagnostic. Compact UTF-8 JSON with full contents occupied 123,356 bytes. Replacing all six contents with null occupied 15,070 bytes: 108,286 bytes saved, or 87.78%. This measures response encoding only; it does not measure live tokens, model behavior, runtime savings, or wall-clock duration.
+Rejection and preservation fixtures run with projects created under both the ordinary inherited temporary directory and its explicitly canonical path. They do not change `TMPDIR`. Retained-response acceptance resolves the existing response, project, generated directory, and inferred directory before comparing path components. A canonical diagnostic path therefore remains usable even when a caller uses an alias such as `/var` for `/private/var`.
+
+The tests open each retained response through available project spellings and verify identical canonical locations and exact bytes. Additional real CLI cases pass canonical, host-provided alias, and fixture symlink spellings through `--project`. Negative cases reject a genuinely different project, traversal to another project, symlink escapes, and responses inside generated or inferred directories. Existing production traversal and symlink refusal remain covered.
+
+## Previously measured encoding
+
+An earlier read-only offline comparison used the actual previous six-file candidate in this project. Both encodings included identical semantic records, dependencies, commands, `status: complete`, and an empty diagnostic. Compact UTF-8 JSON with full contents occupied 123,356 bytes. Replacing all six contents with null occupied 15,070 bytes: 108,286 bytes saved, or 87.78%. This measures that response encoding only; it does not measure this revision, live tokens, model behavior, runtime savings, or wall-clock duration.
