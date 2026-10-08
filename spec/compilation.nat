@@ -23,3 +23,65 @@ When a semantic record has an invalid ID or source, name its kind and ID in the 
 For compatibility with older full-build responses, accept a file without `sources` from `--proposal JSON` or the installed compiler and attribute it conservatively to all current `.nat` sources. The schema for new compiler output still requires `sources`. Scoped responses must retain explicit dependencies.
 
 Before applying a result, verify that tracked generated and inferred files have not been edited or deleted. Reject overwriting an untracked file. Validate the whole response before writing any file. Render `generated/ir.json` with the summary, requirements, and assumptions; render `inferred/assumptions.inat` with reviewable assumption text and source/reason. Each inferred item includes a line `Source: spec/<exact source path>` and retains the full reason text. Record hashes, commands, dependency lists, and summary in `generated/.nat-manifest.json`. Remove outputs no longer in a successful full result. Avoid rewriting files whose bytes have not changed.
+
+## Verified reuse without retranscription
+
+Full semantic scope does not require printing every unchanged byte. For a rebuild,
+freeze a verified snapshot of the previous tracked outputs before invoking Codex.
+Include a compact catalog of their relative paths, content hashes and dependencies
+in the full-build input and explain that the compiler may read them locally.
+The new full response keeps the complete files inventory, but each file's content
+may be a string (new complete bytes) or null (reuse the exact supplied prior file
+at this path). Null is an interpreter-resolved reference, not an empty file and
+not permission to use arbitrary filesystem content. It is legal only for an
+advertised, previously tracked output with bytes matching the frozen snapshot.
+The model supplies current sources for both forms; dependencies remain conservative.
+Do not narrow semantic scope or dependency sets merely to save output tokens.
+
+Resolve null entries entirely in the runner using the frozen catalog and verified
+bytes. Validate the assembled complete result under all ordinary path, identity,
+source and command rules before applying it. Recheck source and prior artifact
+hashes immediately before writes. Refuse stale, missing, symlinked, untracked or
+unadvertised reuse targets without changing generated files, inferred source or
+the manifest. Never substitute empty content or silently drop an invalid entry.
+Omitted prior outputs retain ordinary full-build deletion semantics. A fresh
+build cannot reuse files. Reused files keep their exact bytes and are not rewritten.
+
+Imported legacy full --proposal responses with string contents remain supported.
+For --proposal null entries, freeze and verify the current tracked build as the
+explicit reuse basis at invocation; report this basis in diagnostics. They do not
+refer to an unknown earlier model session. Scoped compilation retains its existing
+response protocol and authority rules; this extension is for full responses only.
+
+## Explicit unsuccessful compilation
+
+New full compiler responses require status complete or incomplete and a diagnostic
+string in addition to the existing fields. An incomplete response must be rejected
+before applying any artifact regardless of whether files is empty or contains a
+diagnostic placeholder. Preserve the response and report its diagnostic, leaving
+all prior generated/inferred bytes and manifests unchanged. A complete response
+still requires all existing structural checks; the flag is not proof of behavioral
+correctness. Legacy imported full proposals and older fixture responses without
+status are treated as legacy complete responses and validated as before.
+
+Retain rejected model output in a diagnostic location outside generated/ and
+inferred/, reporting its path. Do not invoke the compiler again automatically for
+an explicit incomplete full response. Never replace the installed compiler during
+self-regeneration. Whole-result structural validation precedes publication;
+behavioral tests remain separately reported rather than assumed from status.
+
+## Acceptance for verified reuse
+
+Offline fixtures must exercise the actual CLI/schema path, not just helper functions:
+- A full rebuild changes one file and reuses another by null content, preserving
+  reused bytes and metadata, then passes check and executes the declared checks.
+- A full response consisting entirely of valid reused files is legal when semantic
+  records/source hashes change but implementation bytes do not.
+- A fresh build, missing/untracked path, wrong-case path, duplicate path, symlink,
+  edited prior bytes, changed source during compilation, and removed prior artifact
+  all refuse reuse without changing existing output/inferred/manifest snapshots.
+- A model returns incomplete with one diagnostic file and plausible commands:
+  preserve its response and the entire prior build, with no successful-build claim.
+- Legacy full proposals and existing scoped fixtures continue to work unchanged.
+Measure response bytes saved using a real previous candidate, while distinguishing
+that offline encoding comparison from live token usage or wall-clock savings.
