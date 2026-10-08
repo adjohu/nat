@@ -19,7 +19,7 @@ type Sources = BTreeMap<String, Source>;
 const MANIFEST: &str = ".nat-manifest.json";
 const IR: &str = "ir.json";
 const INAT: &str = "assumptions.inat";
-const HELP: &str = "nat — natural-language source compiler\n\nnat init [DIR]\nnat build [--project DIR] [--proposal JSON] [--full]\nnat watch [--project DIR] [--no-test] [--proposal JSON]\nnat run [--project DIR] [ARGS...]\nnat test [--project DIR]\nnat status [--project DIR]\nnat check [--project DIR]\nnat promote ID [--project DIR]\n\ninit creates a project and a starter greeting spec if needed.\nbuild validates and writes code; unchanged builds skip the compiler unless a proposal is explicitly selected.\n--full forces a whole-project compilation.\n--proposal JSON always loads and validates the saved response, even on a current build.\nProposal paths are relative to your current directory.\nwatch polls inputs, rebuilds after edits settle, and runs checks unless --no-test is set.\nrun and test build when needed; run forwards arguments without a shell.\nFor run, -- ends nat option parsing; remaining application arguments are forwarded.\nstatus reports freshness, drift, summary, and file counts.\ncheck succeeds only when all tracked inputs and artifacts match.\npromote appends a current assumption to spec/promoted.nat.\n--project DIR selects a project; otherwise search current directory and ancestors for spec/.\nhelp, --help, -h show this help; version, --version, -V show the package version.\n\nCodex compiles with read-only workspace access. Generated programs and checks execute\nwith your local account privileges. Review code and saved proposals before executing them.\nA build writes validated files but does not execute generated commands.\n";
+const HELP: &str = "nat — natural-language source compiler\n\nnat init [DIR]\nnat build [--project DIR] [--proposal JSON] [--full]\nnat watch [--project DIR] [--no-test] [--proposal JSON]\nnat run [--project DIR] [ARGS...]\nnat test [--project DIR]\nnat status [--project DIR]\nnat check [--project DIR]\nnat promote ID [--project DIR]\n\ninit creates a project and a starter greeting spec if needed.\nbuild validates and writes code; unchanged builds skip the compiler unless a proposal is explicitly selected.\n--full forces whole-project compilation, with verified prior output reuse available.\n--proposal JSON always loads and validates that response, even on a current build.\nFull proposal null contents refer only to the verified current tracked build at invocation.\nProposal paths are relative to your current directory.\nwatch polls inputs, rebuilds after edits settle, and runs checks unless --no-test is set.\nrun and test build when needed; run forwards arguments without a shell.\nFor run, -- ends nat option parsing; remaining application arguments are forwarded.\nstatus reports freshness, drift, summary, and file counts.\ncheck succeeds only when all tracked inputs and artifacts match.\npromote appends a current assumption to spec/promoted.nat.\n--project DIR selects a project; otherwise search current directory and ancestors for spec/.\nhelp, --help, -h show help; version, --version, -V show the package version.\n\nCodex compiles with read-only workspace access. Generated programs and checks execute\nwith your local account privileges. Review code and saved proposals before executing them.\nA build writes structurally validated files but does not execute generated commands.\nIncomplete full responses publish nothing and are not automatically retried.\nRejected responses are retained outside generated/ and inferred/ with their path reported.\n";
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 struct Source { content: String, references: BTreeMap<String, String> }
@@ -60,6 +60,8 @@ struct Manifest {
 }
 #[derive(Clone, Debug)]
 struct Scope { changed: BTreeSet<String>, affected: BTreeSet<String> }
+struct FrozenFile { content: String, digest: String, sources: Vec<String> }
+type Frozen = BTreeMap<String, FrozenFile>;
 
 fn ensure(ok: bool, message: impl Into<String>) -> Result<()> {
     if ok { Ok(()) } else { Err(message.into().into()) }
@@ -71,10 +73,8 @@ fn pretty<T: Serialize>(value: &T) -> Result<Vec<u8>> {
     Ok(bytes)
 }
 fn relative(path: &str) -> Result<PathBuf> {
-    ensure(!path.is_empty() && !path.contains(['\\', ':', '\0'])
-        && !path.chars().any(char::is_control)
-        && path.split('/').all(|p| !p.is_empty() && p != "." && p != ".."),
-        format!("unsafe relative path: {path:?}"))?;
+    ensure(!path.is_empty() && !path.contains(['\\', ':', '\0']) && !path.chars().any(char::is_control)
+        && path.split('/').all(|p| !p.is_empty() && p != "." && p != ".."), format!("unsafe relative path: {path:?}"))?;
     let p = PathBuf::from(path);
     ensure(p.components().all(|c| matches!(c, Component::Normal(_))), format!("unsafe path: {path}"))?;
     Ok(p)
@@ -265,12 +265,52 @@ fn validate(c: &Compilation, sources: &Sources) -> Result<()> {
     for check in &c.checks { argv_valid(check, false)?; }
     Ok(())
 }
-fn decode_full(mut response: Value, sources: &Sources) -> Result<Compilation> {
+fn freeze_outputs(root: &Path, old: Option<&Manifest>, sources: &Sources) -> Result<Frozen> {
+    let mut frozen = Frozen::new();
+    if let Some(m) = old {
+        verify_artifacts(root, m)?;
+        for (path, digest) in &m.generated {
+            if path == IR { continue; }
+            let target = root.join("generated").join(relative(path)?);
+            no_symlinks(root, &target)?;
+            let bytes = fs::read(&target)?;
+            ensure(hash(&bytes) == *digest, format!("tracked output changed while freezing reuse basis: {path}"))?;
+            let dependencies = m.file_sources.get(path).filter(|v| !v.is_empty()).cloned()
+                .unwrap_or_else(|| sources.keys().cloned().collect());
+            frozen.insert(path.clone(), FrozenFile { content: String::from_utf8(bytes)?, digest: digest.clone(), sources: dependencies });
+        }
+        verify_artifacts(root, m)?;
+    }
+    Ok(frozen)
+}
+fn catalog(frozen: &Frozen) -> Value {
+    json!(frozen.iter().map(|(path, file)| json!({"path":path,"hash":file.digest,"sources":file.sources})).collect::<Vec<_>>())
+}
+fn decode_full(mut response: Value, sources: &Sources, frozen: &Frozen) -> Result<Compilation> {
+    let object = response.as_object_mut().ok_or("full response must be an object")?;
+    if let Some(status) = object.remove("status") {
+        let diagnostic = object.remove("diagnostic").ok_or("full response status requires diagnostic")?;
+        let diagnostic = diagnostic.as_str().ok_or("full response diagnostic must be a string")?;
+        match status.as_str() {
+            Some("complete") => {},
+            Some("incomplete") => return Err(format!("incomplete compilation: {diagnostic}").into()),
+            _ => return Err("invalid full response status; expected complete or incomplete".into()),
+        }
+    }
     let dependencies = json!(sources.keys().collect::<Vec<_>>());
-    if let Some(files) = response.get_mut("files").and_then(Value::as_array_mut) {
+    if let Some(files) = object.get_mut("files").and_then(Value::as_array_mut) {
         for file in files {
             if let Some(object) = file.as_object_mut() {
-                if !object.contains_key("sources") { object.insert("sources".into(), dependencies.clone()); }
+                if object.get("content").is_some_and(Value::is_null) {
+                    let path = object.get("path").and_then(Value::as_str).ok_or("null reuse requires a string path")?;
+                    relative(path)?;
+                    ensure(object.contains_key("sources"), format!("null reuse requires explicit current sources: {path}"))?;
+                    let prior = frozen.get(path).ok_or_else(|| format!("unadvertised or unavailable reuse target: {path}"))?;
+                    ensure(hash(prior.content.as_bytes()) == prior.digest, format!("invalid frozen reuse bytes: {path}"))?;
+                    object.insert("content".into(), Value::String(prior.content.clone()));
+                } else if !object.contains_key("sources") {
+                    object.insert("sources".into(), dependencies.clone());
+                }
             }
         }
     }
@@ -320,9 +360,7 @@ fn merge_patch(mut base: Compilation, patch: Patch, scope: &Scope) -> Result<Com
     base.requirements.extend(patch.requirements);
     base.assumptions.retain(|a| !scope.changed.contains(&a.source));
     base.assumptions.extend(patch.assumptions);
-    base.summary = patch.summary;
-    base.run = patch.run;
-    base.checks = patch.checks;
+    base.summary = patch.summary; base.run = patch.run; base.checks = patch.checks;
     Ok(base)
 }
 fn request(root: &Path, sources: &Sources, old: Option<&Manifest>, scope: Option<&Scope>, feedback: Option<&str>) -> Result<Value> {
@@ -339,20 +377,16 @@ fn request(root: &Path, sources: &Sources, old: Option<&Manifest>, scope: Option
             ir.assumptions.retain(|a| scope.changed.contains(&a.source));
         }
         for path in &scope.affected {
-            affected.push(json!({"path": path, "content": fs::read_to_string(root.join("generated").join(path))?}));
+            affected.push(json!({"path":path,"content":fs::read_to_string(root.join("generated").join(path))?}));
         }
     }
-    let prior_inference = if scope.is_none() && old.is_some() {
-        fs::read_to_string(root.join("inferred").join(INAT))?
-    } else { String::new() };
-    Ok(json!({
-        "scope": if scope.is_some() { "scoped" } else { "full" },
-        "human_sources": human, "source_paths": sources.keys().collect::<Vec<_>>(),
-        "previous_semantic_record": previous, "previous_inferences": prior_inference,
-        "affected_outputs": affected, "previous_dependencies": old.map(|m| &m.file_sources),
-        "previous_run": old.map(|m| &m.run), "previous_checks": old.map(|m| &m.checks),
-        "reserved_ids": reserved, "runtime_failure_feedback": feedback,
-    }))
+    let prior_inference = if scope.is_none() && old.is_some() { fs::read_to_string(root.join("inferred").join(INAT))? } else { String::new() };
+    Ok(json!({"scope":if scope.is_some() {"scoped"} else {"full"},
+        "human_sources":human,"source_paths":sources.keys().collect::<Vec<_>>(),
+        "previous_semantic_record":previous,"previous_inferences":prior_inference,
+        "affected_outputs":affected,"previous_dependencies":old.map(|m| &m.file_sources),
+        "previous_run":old.map(|m| &m.run),"previous_checks":old.map(|m| &m.checks),
+        "reserved_ids":reserved,"runtime_failure_feedback":feedback}))
 }
 fn preflight(root: &Path, c: &Compilation, old: Option<&Manifest>) -> Result<()> {
     if let Some(m) = old { verify_artifacts(root, m)?; }
@@ -385,6 +419,27 @@ impl Scratch {
     }
 }
 impl Drop for Scratch { fn drop(&mut self) { let _ = fs::remove_dir_all(&self.0); } }
+fn rejected_bytes(root: &Path, bytes: &[u8], message: &str) -> Box<dyn Error> {
+    let retain = || -> Result<PathBuf> {
+        let directory = root.join(format!(".nat-diagnostic-{}", unique()));
+        fs::create_dir(&directory)?;
+        let path = directory.join("response.json");
+        let mut file = OpenOptions::new().write(true).create_new(true).open(&path)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+        Ok(path)
+    };
+    match retain() {
+        Ok(path) => format!("{message}\nRejected response retained at {}", path.display()).into(),
+        Err(e) => format!("{message}\nCould not retain rejected response: {e}").into(),
+    }
+}
+fn rejected(root: &Path, response: &Value, error: &dyn Error) -> Box<dyn Error> {
+    match pretty(response) {
+        Ok(bytes) => rejected_bytes(root, &bytes, &error.to_string()),
+        Err(e) => format!("{error}; could not serialize rejected response: {e}").into(),
+    }
+}
 fn write_changed(path: &Path, bytes: &[u8]) -> Result<()> {
     if fs::read(path).ok().as_deref() == Some(bytes) { return Ok(()); }
     let parent = path.parent().ok_or("file has no parent")?;
@@ -392,9 +447,7 @@ fn write_changed(path: &Path, bytes: &[u8]) -> Result<()> {
     let temporary = parent.join(format!(".nat-write-{}", unique()));
     let operation = || -> Result<()> {
         let mut f = OpenOptions::new().write(true).create_new(true).open(&temporary)?;
-        f.write_all(bytes)?;
-        f.sync_all()?;
-        fs::rename(&temporary, path)?;
+        f.write_all(bytes)?; f.sync_all()?; fs::rename(&temporary, path)?;
         Ok(())
     };
     let result = operation();
@@ -438,7 +491,10 @@ where F: FnMut(&Value) -> Result<Value> {
 fn build_with_policy<F>(root: &Path, force: bool, feedback: Option<&str>, explicit_proposal: bool, compiler: &mut F) -> Result<Manifest>
 where F: FnMut(&Value) -> Result<Value> {
     let sources = read_sources(root)?;
+    let manifest_path = root.join("generated").join(MANIFEST);
+    let manifest_before = fs::read(&manifest_path).ok();
     let old = load_manifest(root)?;
+    ensure(fs::read(&manifest_path).ok() == manifest_before, "manifest changed while reading build state")?;
     if let Some(m) = &old {
         verify_artifacts(root, m)?;
         if !force && !explicit_proposal && feedback.is_none() && m.input_hash == input_hash(&sources) {
@@ -446,38 +502,57 @@ where F: FnMut(&Value) -> Result<Value> {
             return Ok(m.clone());
         }
     }
-    let manifest_before = fs::read(root.join("generated").join(MANIFEST)).ok();
     let scope = if force || feedback.is_some() { None } else { old.as_ref().and_then(|m| scope_for(m, &sources)) };
     let mut candidate = None;
     if let (Some(scope), Some(m)) = (scope.as_ref(), old.as_ref()) {
-        let attempt = (|| -> Result<Compilation> {
-            let response = compiler(&request(root, &sources, old.as_ref(), Some(scope), feedback)?)?;
-            let patch: Patch = serde_json::from_value(response)?;
-            let c = merge_patch(restore_compilation(root, m)?, patch, scope)?;
-            validate(&c, &sources)?;
-            preflight(root, &c, old.as_ref())?;
-            Ok(c)
-        })();
-        match attempt {
-            Ok(c) => candidate = Some(c),
+        let input = request(root, &sources, old.as_ref(), Some(scope), feedback)?;
+        match compiler(&input) {
+            Ok(response) => {
+                let attempt = (|| -> Result<Compilation> {
+                    let patch: Patch = serde_json::from_value(response.clone())?;
+                    let c = merge_patch(restore_compilation(root, m)?, patch, scope)?;
+                    validate(&c, &sources)?;
+                    preflight(root, &c, old.as_ref())?;
+                    Ok(c)
+                })();
+                match attempt {
+                    Ok(c) => candidate = Some((c, response)),
+                    Err(e) => eprintln!("nat: scoped response requires full compilation: {}", rejected(root, &response, e.as_ref())),
+                }
+            },
             Err(e) => eprintln!("nat: scoped response requires full compilation: {e}"),
         }
     }
-    let c = if let Some(c) = candidate { c } else {
-        let response = compiler(&request(root, &sources, old.as_ref(), None, feedback)?)?;
-        decode_full(response, &sources)?
+    let (c, response) = if let Some(candidate) = candidate { candidate } else {
+        let frozen = freeze_outputs(root, old.as_ref(), &sources)?;
+        let mut input = request(root, &sources, old.as_ref(), None, feedback)?;
+        input["reuse_catalog"] = catalog(&frozen);
+        input["reuse_basis_manifest_hash"] = json!(manifest_before.as_ref().map(|b| hash(b)));
+        if explicit_proposal {
+            if let Some(bytes) = &manifest_before {
+                eprintln!("nat: full proposal reuse basis: current tracked manifest SHA-256 {}; {} outputs verified at invocation", hash(bytes), frozen.len());
+            } else { eprintln!("nat: full proposal reuse basis: fresh build; reuse unavailable"); }
+        }
+        let response = compiler(&input)?;
+        let c = decode_full(response.clone(), &sources, &frozen)
+            .map_err(|e| rejected(root, &response, e.as_ref()))?;
+        (c, response)
     };
-    validate(&c, &sources)?;
-    preflight(root, &c, old.as_ref())?;
-    ensure(input_hash(&read_sources(root)?) == input_hash(&sources), "inputs changed during compilation; retry build")?;
-    ensure(fs::read(root.join("generated").join(MANIFEST)).ok() == manifest_before, "manifest changed during compilation; retry build")?;
+    let validation = (|| -> Result<()> {
+        validate(&c, &sources)?;
+        preflight(root, &c, old.as_ref())?;
+        ensure(input_hash(&read_sources(root)?) == input_hash(&sources), "inputs changed during compilation; retry build")?;
+        no_symlinks(root, &manifest_path)?;
+        ensure(fs::read(&manifest_path).ok() == manifest_before, "manifest changed during compilation; retry build")?;
+        if let Some(m) = &old { verify_artifacts(root, m)?; }
+        Ok(())
+    })();
+    validation.map_err(|e| rejected(root, &response, e.as_ref()))?;
     let m = persist(root, &sources, &c, old.as_ref())?;
     println!("Built: {} ({} files)", m.summary, c.files.len());
     Ok(m)
 }
-
 mod compiler;
-
 fn saved_response(path: &Path) -> Result<Value> { Ok(serde_json::from_slice(&fs::read(path)?)?) }
 fn build(root: &Path, proposal: Option<&Path>, force: bool) -> Result<Manifest> {
     let mut compile = |request: &Value| -> Result<Value> {
@@ -503,24 +578,21 @@ fn tee<R: Read + Send + 'static>(mut reader: R, stderr: bool) -> thread::JoinHan
         Ok(captured)
     })
 }
-fn joined(handle: thread::JoinHandle<io::Result<Vec<u8>>>) -> Result<Vec<u8>> {
-    Ok(handle.join().map_err(|_| "output reader panicked")??)
-}
+fn joined(handle: thread::JoinHandle<io::Result<Vec<u8>>>) -> Result<Vec<u8>> { Ok(handle.join().map_err(|_| "output reader panicked")??) }
 #[derive(Debug)]
 struct Execution { success: bool, dependency_missing: bool, diagnostic: String }
 fn dependency_diagnostic(message: &str) -> bool {
     let lower = message.to_lowercase();
-    ["modulenotfounderror:", "importerror: no module named", "no module named ",
-        "cannot find module '", "err_module_not_found", "error while loading shared libraries:",
-        "library not loaded:", "cannot open shared object file", "no display name and no $display",
-        "couldn't connect to display", "could not connect to display", "cannot open display:",
-        "no x11 display variable", "cannot load library", "qt platform plugin could not be initialized",
-        "could not load the qt platform plugin", "bad interpreter: no such file"].iter().any(|p| lower.contains(p))
+    ["modulenotfounderror:","importerror: no module named","no module named ","cannot find module '","err_module_not_found",
+        "error while loading shared libraries:","library not loaded:","cannot open shared object file","no display name and no $display",
+        "couldn't connect to display","could not connect to display","cannot open display:","no x11 display variable",
+        "cannot load library","qt platform plugin could not be initialized","could not load the qt platform plugin",
+        "bad interpreter: no such file"].iter().any(|p| lower.contains(p))
 }
 fn execute(root: &Path, command: &[String], extra: &[String]) -> Result<Execution> {
     argv_valid(command, false)?;
-    let child = Command::new(&command[0]).args(&command[1..]).args(extra)
-        .current_dir(root.join("generated")).stdin(Stdio::inherit()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn();
+    let child = Command::new(&command[0]).args(&command[1..]).args(extra).current_dir(root.join("generated"))
+        .stdin(Stdio::inherit()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn();
     let mut child = match child {
         Ok(c) => c,
         Err(e) => return Ok(Execution { success: false, dependency_missing: e.kind() == io::ErrorKind::NotFound,
@@ -575,15 +647,10 @@ fn promote(root: &Path, id: &str) -> Result<()> {
     let source = read_source(root, "promoted.nat", content.clone())?;
     sources.insert("promoted.nat".into(), source);
     for f in &mut c.files {
-        if f.sources.contains(&a.source) && !f.sources.iter().any(|s| s == "promoted.nat") {
-            f.sources.push("promoted.nat".into());
-            f.sources.sort();
-        }
+        if f.sources.contains(&a.source) && !f.sources.iter().any(|s| s == "promoted.nat") { f.sources.push("promoted.nat".into()); f.sources.sort(); }
     }
     c.requirements.push(Requirement { id: a.id, source: "promoted.nat".into(), statement: a.statement });
-    validate(&c, &sources)?;
-    preflight(root, &c, Some(&old))?;
-    current(root)?;
+    validate(&c, &sources)?; preflight(root, &c, Some(&old))?; current(root)?;
     write_changed(&path, content.as_bytes())?;
     persist(root, &sources, &c, Some(&old))?;
     println!("Promoted {id} to spec/promoted.nat");
@@ -594,10 +661,7 @@ impl Debounce {
     fn new(key: String) -> Self { Self { key, changed: None } }
     fn observe(&mut self, key: String, now: Instant) -> bool {
         if key != self.key { self.key = key; self.changed = Some(now); return false; }
-        if self.changed.is_some_and(|t| now.duration_since(t) >= Duration::from_millis(400)) {
-            self.changed = None;
-            return true;
-        }
+        if self.changed.is_some_and(|t| now.duration_since(t) >= Duration::from_millis(400)) { self.changed = None; return true; }
         false
     }
 }
@@ -606,27 +670,18 @@ fn fingerprint(root: &Path) -> String {
 }
 fn watch(root: &Path, proposal: Option<&Path>, test: bool) -> Result<()> {
     let mut debounce = Debounce::new(fingerprint(root));
-    let cycle = || -> Result<()> {
-        let m = build(root, proposal, false)?;
-        if test { checks_using(root, &m, &mut execute)?; }
-        Ok(())
-    };
+    let cycle = || -> Result<()> { let m = build(root, proposal, false)?; if test { checks_using(root, &m, &mut execute)?; } Ok(()) };
     if let Err(e) = cycle() { eprintln!("nat watch: {e}"); }
     eprintln!("nat: watching {} (150 ms polling, 400 ms settle)", root.display());
     loop {
         thread::sleep(Duration::from_millis(150));
-        if debounce.observe(fingerprint(root), Instant::now()) {
-            if let Err(e) = cycle() { eprintln!("nat watch: {e}"); }
-        }
+        if debounce.observe(fingerprint(root), Instant::now()) { if let Err(e) = cycle() { eprintln!("nat watch: {e}"); } }
     }
 }
 fn init(path: &Path) -> Result<()> {
     fs::create_dir_all(path)?;
     let root = fs::canonicalize(path)?;
-    for dir in ["spec", "inferred", "generated"] {
-        no_symlinks(&root, &root.join(dir))?;
-        fs::create_dir_all(root.join(dir))?;
-    }
+    for dir in ["spec","inferred","generated"] { no_symlinks(&root, &root.join(dir))?; fs::create_dir_all(root.join(dir))?; }
     let mut specs = Vec::new();
     collect_specs(&root, &root.join("spec"), &mut specs)?;
     if specs.is_empty() {
@@ -644,11 +699,7 @@ fn resolve_project(explicit: Option<&Path>) -> Result<PathBuf> {
     }
     let start = env::current_dir()?;
     for p in start.ancestors() {
-        if p.join("spec").is_dir() {
-            let root = fs::canonicalize(p)?;
-            no_symlinks(&root, &root.join("spec"))?;
-            return Ok(root);
-        }
+        if p.join("spec").is_dir() { let root = fs::canonicalize(p)?; no_symlinks(&root, &root.join("spec"))?; return Ok(root); }
     }
     Err("no project found; run nat init or use --project DIR".into())
 }
@@ -657,7 +708,7 @@ struct Cli { command: String, project: Option<PathBuf>, proposal: Option<PathBuf
 fn parse(args: Vec<String>) -> Result<Cli> {
     let command = args.first().cloned().unwrap_or_else(|| "help".into());
     let command = match command.as_str() { "--help" | "-h" => "help".into(), "--version" | "-V" => "version".into(), _ => command };
-    ensure(["help", "version", "init", "build", "run", "test", "status", "check", "watch", "promote"].contains(&command.as_str()), format!("unknown command {command}; use nat help"))?;
+    ensure(["help","version","init","build","run","test","status","check","watch","promote"].contains(&command.as_str()), format!("unknown command {command}; use nat help"))?;
     let mut cli = Cli { command, project: None, proposal: None, full: false, no_test: false, positional: Vec::new() };
     let mut i = 1;
     let mut flags = BTreeSet::new();
@@ -665,23 +716,18 @@ fn parse(args: Vec<String>) -> Result<Cli> {
         let arg = &args[i];
         if cli.command == "run" && arg == "--" { cli.positional.extend_from_slice(&args[i + 1..]); break; }
         if cli.command == "run" && arg != "--project" { cli.positional.extend_from_slice(&args[i..]); break; }
-        if arg == "--project" && !["init", "help", "version"].contains(&cli.command.as_str()) {
-            ensure(flags.insert(arg.clone()), "duplicate --project")?;
-            i += 1;
+        if arg == "--project" && !["init","help","version"].contains(&cli.command.as_str()) {
+            ensure(flags.insert(arg.clone()), "duplicate --project")?; i += 1;
             let value = args.get(i).filter(|s| !s.is_empty() && !s.starts_with('-')).ok_or("missing value for --project")?;
             cli.project = Some(PathBuf::from(value));
-        } else if arg == "--proposal" && ["build", "watch"].contains(&cli.command.as_str()) {
-            ensure(flags.insert(arg.clone()), "duplicate --proposal")?;
-            i += 1;
+        } else if arg == "--proposal" && ["build","watch"].contains(&cli.command.as_str()) {
+            ensure(flags.insert(arg.clone()), "duplicate --proposal")?; i += 1;
             let value = args.get(i).filter(|s| !s.is_empty() && !s.starts_with('-')).ok_or("missing value for --proposal")?;
             cli.proposal = Some(PathBuf::from(value));
-        } else if arg == "--full" && cli.command == "build" {
-            ensure(!cli.full, "duplicate --full")?; cli.full = true;
-        } else if arg == "--no-test" && cli.command == "watch" {
-            ensure(!cli.no_test, "duplicate --no-test")?; cli.no_test = true;
-        } else if ["init", "promote"].contains(&cli.command.as_str()) && !arg.starts_with('-') && !arg.is_empty() {
-            ensure(cli.positional.is_empty(), format!("excess argument: {arg}"))?;
-            cli.positional.push(arg.clone());
+        } else if arg == "--full" && cli.command == "build" { ensure(!cli.full, "duplicate --full")?; cli.full = true;
+        } else if arg == "--no-test" && cli.command == "watch" { ensure(!cli.no_test, "duplicate --no-test")?; cli.no_test = true;
+        } else if ["init","promote"].contains(&cli.command.as_str()) && !arg.starts_with('-') && !arg.is_empty() {
+            ensure(cli.positional.is_empty(), format!("excess argument: {arg}"))?; cli.positional.push(arg.clone());
         } else { return Err(format!("invalid {} option or argument: {arg}; use nat help", cli.command).into()); }
         i += 1;
     }
@@ -705,11 +751,8 @@ fn dispatch(args: Vec<String>) -> Result<()> {
                 println!("Previous: {}\nFiles: {} source, {} generated, {} inferred", m.summary, m.source_hashes.len(), m.generated.len(), m.inferred.len());
                 if let Err(e) = verify_artifacts(&root, &m) { println!("Artifact drift: {e}"); }
                 match read_sources(&root) {
-                    Ok(s) if input_hash(&s) == m.input_hash => {
-                        if verify_artifacts(&root, &m).is_ok() { println!("Current build"); }
-                    },
-                    Ok(_) => println!("Stale inputs"),
-                    Err(e) => println!("Stale or inaccessible inputs: {e}"),
+                    Ok(s) if input_hash(&s) == m.input_hash => { if verify_artifacts(&root, &m).is_ok() { println!("Current build"); } },
+                    Ok(_) => println!("Stale inputs"), Err(e) => println!("Stale or inaccessible inputs: {e}"),
                 }
             } else { println!("No build"); }
         },

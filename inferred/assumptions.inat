@@ -1,5 +1,4 @@
-# Inferred assumptions
+# Generated assumptions. Promote one with `nat promote ID`.
+# Edit spec/*.nat to override an assumption.
 
-Reviewable compiler inference; spec/ remains authoritative.
-
-No inferred product assumptions.
+No inferred product behavior.

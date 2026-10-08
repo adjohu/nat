@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "summary": "Complete Rust nat candidate with full/scoped compilation, Markdown reference tracking, drift protection, explicit proposal validation, promotion, watching, and one-shot runtime dependency repair. Corrected overlapping mutable borrows in regression tests and narrowed generated-file dependencies. Includes offline compile, behavioral tests, and warnings-denied Clippy checks. Host toolchain, Codex flags, offline resolution of 25 dependency packages, and cached library entry points were verified read-only; generated software and checks were not executed.",
+  "summary": "Rust nat candidate with verified full-build reuse, explicit complete/incomplete responses, retained rejection diagnostics, legacy full-response compatibility, and unchanged scoped authority rules. Includes offline CLI/schema fixtures for reuse, drift, rejection, and existing CLI behavior. A read-only comparison of the previous six-file candidate measured 108,286 fewer response bytes (87.78%) with all-null reuse; this is not a live token or timing measurement. Generated software and checks were not executed.",
   "requirements": [
     {
       "id": "CLI-001",
@@ -51,61 +51,6 @@
       "id": "CLI-010",
       "source": "cli.nat",
       "statement": "promote accepts an existing assumption only from a current build, appends its statement to spec/promoted.nat, removes the inferred assumption, and updates the manifest so check passes without silently overwriting other sources."
-    },
-    {
-      "id": "COMP-001",
-      "source": "compilation.nat",
-      "statement": "Invoke the installed authenticated Codex CLI from the project root with read-only workspace access and structured JSON output; pass an absolute temporary response path with -o and an absolute schema path with --output-schema. Only the Rust runner writes generated and inferred artifacts."
-    },
-    {
-      "id": "COMP-002",
-      "source": "compilation.nat",
-      "statement": "Surface Codex failures and diagnostic output while keeping successful normal transcripts and submitted spec text out of the terminal. Immediately report 'Compiling all N spec(s) with Codex' for full compilation or 'Compiling N changed spec(s) with Codex; M generated file(s) affected' for scoped compilation, followed by periodic 'Still compiling with Codex (Ns elapsed)' updates."
-    },
-    {
-      "id": "COMP-003",
-      "source": "compilation.nat",
-      "statement": "Full compilation receives every spec's original Markdown, direct local reference hashes, and previous inference and semantic records; require runtime availability inspection, explicit missing product assumptions, minimal runnable implementation, and meaningful checks without invented features."
-    },
-    {
-      "id": "COMP-004",
-      "source": "compilation.nat",
-      "statement": "Use structured summary, requirement, assumption, file, run, and check records; each file records full content and every direct or indirect .nat dependency, conservatively using all source paths when uncertain. Commands are argv arrays executed from generated/ without a shell; an empty run denotes a non-runnable project."
-    },
-    {
-      "id": "COMP-005",
-      "source": "compilation.nat",
-      "statement": "Constrain schema source fields to supplied exact source paths and independently validate saved proposals for nonempty valid unique semantic IDs, mapped requirements, existing sources, unique output paths, dependencies, and argv values."
-    },
-    {
-      "id": "COMP-006",
-      "source": "compilation.nat",
-      "statement": "Reject output paths escaping generated/, traversing symlinks, colliding with parent files, or using reserved ir.json and .nat-manifest.json paths; reject empty argv elements."
-    },
-    {
-      "id": "COMP-007",
-      "source": "compilation.nat",
-      "statement": "Validate the complete response and verify tracked generated and inferred artifacts before writing; refuse modified or missing tracked artifacts and overwriting untracked files."
-    },
-    {
-      "id": "COMP-008",
-      "source": "compilation.nat",
-      "statement": "Render generated/ir.json and reviewable inferred/assumptions.inat; every inferred item includes 'Source: spec/<exact source path>' and its full reason. Record hashes, commands, dependencies, and summary in generated/.nat-manifest.json, remove obsolete full-result outputs, and avoid rewriting identical bytes."
-    },
-    {
-      "id": "COMP-009",
-      "source": "compilation.nat",
-      "statement": "Under Full compilation output, accept omitted file sources in older full-build responses from either --proposal JSON or the installed compiler, conservatively attributing those files to all current .nat sources. New compiler schemas still require sources, and every scoped response must retain explicit dependencies."
-    },
-    {
-      "id": "COMP-010",
-      "source": "compilation.nat",
-      "statement": "Under Full compilation output, diagnostics for an invalid semantic ID or source name the record kind and ID, for example 'invalid assumption A-01 or source'."
-    },
-    {
-      "id": "COMP-011",
-      "source": "compilation.nat",
-      "statement": "Under Full compilation input, instructions for both full and scoped compilation explicitly state '.nat files are Markdown' and direct the compiler to view referenced images using read-only tools; scoped input includes changed sources and affected old output content while omitting unrelated source and output content."
     },
     {
       "id": "INC-001",
@@ -256,6 +201,101 @@
       "id": "FMT-007",
       "source": "spec-format.nat",
       "statement": "Under Local references, canonicalize both the project root and each target before checking containment, accept macOS /var and /private/var aliases of the same project, preserve stable project-relative reference keys, and test ordinary and nested-spec references through an aliased project root."
+    },
+    {
+      "id": "COMP-001",
+      "source": "compilation.nat",
+      "statement": "Invoke the installed authenticated Codex CLI from the project root with read-only workspace access and structured JSON output; pass absolute paths for -o and --output-schema. Only the Rust runner writes generated and inferred artifacts."
+    },
+    {
+      "id": "COMP-002",
+      "source": "compilation.nat",
+      "statement": "Surface compiler failures and diagnostics, suppress successful normal transcripts and submitted source text, immediately announce full or scoped compilation counts, and periodically report elapsed compilation time."
+    },
+    {
+      "id": "COMP-003",
+      "source": "compilation.nat",
+      "statement": "Full compilation receives every source's original Markdown and direct reference hashes, plus previous inference and semantic records. Require read-only runtime inspection, explicit product assumptions, minimal implementation, and meaningful checks."
+    },
+    {
+      "id": "COMP-004",
+      "source": "compilation.nat",
+      "statement": "Return structured summary, requirements, assumptions, files, run, and checks. Files identify every direct and indirect .nat dependency. Full responses contain a complete inventory with string content or verified null reuse; scoped responses retain full string content. Commands are argv arrays executed from generated/ without an implicit shell, and an empty run denotes a non-runnable project."
+    },
+    {
+      "id": "COMP-005",
+      "source": "compilation.nat",
+      "statement": "Constrain schema sources to exact supplied paths and independently validate saved proposals for nonempty valid unique semantic IDs, mapped requirements, existing sources, unique output paths, dependencies, and argv values."
+    },
+    {
+      "id": "COMP-006",
+      "source": "compilation.nat",
+      "statement": "Reject generated paths that escape, traverse symlinks, collide with parent files, or use reserved ir.json or .nat-manifest.json paths; reject empty argv elements."
+    },
+    {
+      "id": "COMP-007",
+      "source": "compilation.nat",
+      "statement": "Validate the whole result and verify tracked generated and inferred artifacts before writing; refuse edited or deleted tracked artifacts and untracked overwrites."
+    },
+    {
+      "id": "COMP-008",
+      "source": "compilation.nat",
+      "statement": "Render semantic records and reviewable inferred assumptions with exact Source: spec/<path> labels and complete reasons. Record hashes, commands, dependencies, and summary in the manifest; remove omitted full-result outputs and avoid rewriting unchanged bytes."
+    },
+    {
+      "id": "COMP-009",
+      "source": "compilation.nat",
+      "statement": "Accept omitted sources in legacy full files with string content, conservatively attributing them to every current source. New compiler schemas require sources, and scoped responses require explicit dependencies."
+    },
+    {
+      "id": "COMP-010",
+      "source": "compilation.nat",
+      "statement": "Invalid semantic ID or source diagnostics identify the record kind and ID, such as invalid assumption A-01 or source."
+    },
+    {
+      "id": "COMP-011",
+      "source": "compilation.nat",
+      "statement": "Both compiler scopes explicitly state that .nat files are Markdown and require viewing referenced images read-only. Scoped input supplies changed sources and affected old output contents while omitting unrelated source and output contents."
+    },
+    {
+      "id": "COMP-012",
+      "source": "compilation.nat",
+      "statement": "Before full compilation, freeze verified prior tracked output bytes and advertise a compact catalog of exact relative paths, hashes, and dependencies. Permit local inspection without narrowing semantic scope or dependencies to reduce response size."
+    },
+    {
+      "id": "COMP-013",
+      "source": "compilation.nat",
+      "statement": "Resolve full-response null content exclusively from the frozen advertised catalog. Require exact tracked paths and current explicit dependencies; refuse fresh-build, missing, untracked, unadvertised, wrong-case, duplicate, symlinked, or stale reuse without publishing artifacts."
+    },
+    {
+      "id": "COMP-014",
+      "source": "compilation.nat",
+      "statement": "Validate the fully assembled result under ordinary structural rules and recheck source, manifest, and prior artifact hashes immediately before publication. Reused files retain exact bytes and are not rewritten; omitted files retain ordinary full-build deletion semantics."
+    },
+    {
+      "id": "COMP-015",
+      "source": "compilation.nat",
+      "statement": "For explicitly imported full proposals, freeze and verify the current tracked build at invocation as the reuse basis and report that basis in diagnostics. Preserve legacy string proposals and the existing scoped protocol."
+    },
+    {
+      "id": "COMP-016",
+      "source": "compilation.nat",
+      "statement": "New full schemas require status complete or incomplete and a diagnostic string. Reject incomplete responses before artifact application, even when they contain plausible files and commands, preserve the prior build, and do not automatically retry compilation. Treat absent status in legacy full responses as legacy complete."
+    },
+    {
+      "id": "COMP-017",
+      "source": "compilation.nat",
+      "statement": "Retain rejected model responses outside generated/ and inferred/ and report their location. Complete status does not bypass structural validation or imply behavioral correctness. Never replace the installed compiler during self-regeneration."
+    },
+    {
+      "id": "COMP-018",
+      "source": "compilation.nat",
+      "statement": "Provide offline fixtures through the actual CLI and output-schema path covering partial and all-file reuse, unchanged metadata, executed declared checks, invalid reuse and concurrent drift, incomplete responses, and compatibility with legacy and scoped responses."
+    },
+    {
+      "id": "COMP-019",
+      "source": "compilation.nat",
+      "statement": "Measure response-byte savings using a real previous candidate and distinguish the offline encoding comparison from live token usage or wall-clock savings."
     }
   ],
   "assumptions": []
