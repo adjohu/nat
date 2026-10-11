@@ -20,6 +20,8 @@ Could compile to TypeScript today, Rust tomorrow, or something else entirely.
 
 ## Quick start
 
+**Execution safety:** Compilation uses read-only workspace access, but generated programs and checks run with your local account privileges. Review generated code before running it. `nat run` executes the program; `nat test` and, by default, `nat watch` execute generated checks. To inspect the output first, use `nat build`.
+
 Install [Rust and Cargo](https://www.rust-lang.org/tools/install) and the [Codex CLI](https://learn.chatgpt.com/docs/codex/cli), then:
 
 ```sh
